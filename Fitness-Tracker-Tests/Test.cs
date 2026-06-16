@@ -16,5 +16,16 @@ namespace Fitness_Tracker_Tests
             // Assert
             Assert.Equal(expected, actual);
         }
+
+        [Fact]
+        public void Test2()
+        {
+            // Arrange
+            int expected = 6;
+            // Act
+            int actual = 7 - 1;
+            // Assert
+            Assert.Equal(expected, actual);
+        }
     }
 }
