@@ -8,9 +8,9 @@ ARG BUILD_CONFIGURATION=Release
 WORKDIR /src
 
 COPY ["Fintes-Tracker/Fintes-Tracker.csproj", "Fintes-Tracker/"]
-COPY ["Fintess-Tracker-Application/Fintess-Tracker-Application.csproj", "Fintess-Tracker-Application/"]
-COPY ["Fintess-Tracker-Domain/Fintess-Tracker-Domain.csproj", "Fintess-Tracker-Domain/"]
-COPY ["Fintess-Tracker-Infrastructure/Fintess-Tracker-Infrastructure.csproj", "Fintess-Tracker-Infrastructure/"]
+COPY ["Fintes-Tracker-Application/Fintes-Tracker-Application.csproj", "Fintess-Tracker-Application/"]
+COPY ["Fintes-Tracker-Domain/Fintes-Tracker-Domain.csproj", "Fintess-Tracker-Domain/"]
+COPY ["Fintes-Tracker-Infrastructure/Fintes-Tracker-Infrastructure.csproj", "Fintess-Tracker-Infrastructure/"]
 
 RUN dotnet restore "Fintes-Tracker/Fintes-Tracker.csproj"
 
