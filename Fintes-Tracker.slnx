@@ -1,11 +1,21 @@
 <Solution>
   <Folder Name="/Application/">
-    <Project Path="Fintes-Tracker/Fintes-Tracker.csproj" />
-    <Project Path="Fintes-Tracker-Application/Fintes-Tracker-Application.csproj" />
-    <Project Path="Fintes-Tracker-Domain/Fintes-Tracker-Domain.csproj" />
-    <Project Path="Fintes-Tracker-Infrastructure/Fintes-Tracker-Infrastructure.csproj" />
+    <Project Path="Fintes-Tracker-Application/Fintes-Tracker-Application.csproj">
+      <Build Solution="Debug|*" Project="false" />
+    </Project>
+    <Project Path="Fintes-Tracker-Domain/Fintes-Tracker-Domain.csproj">
+      <Build Solution="Debug|*" Project="false" />
+    </Project>
+    <Project Path="Fintes-Tracker-Infrastructure/Fintes-Tracker-Infrastructure.csproj">
+      <Build Solution="Debug|*" Project="false" />
+    </Project>
+    <Project Path="Fintes-Tracker/Fintes-Tracker.csproj">
+      <Build Solution="Debug|*" Project="false" />
+    </Project>
   </Folder>
   <Folder Name="/Tests/">
-    <Project Path="Fitnes-Tracker-Tests/Fitnes-Tracker-Tests.csproj" />
+    <Project Path="Fitnes-Tracker-Tests/Fitnes-Tracker-Tests.csproj">
+      <Build Solution="Debug|*" Project="false" />
+    </Project>
   </Folder>
 </Solution>
