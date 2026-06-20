@@ -40,7 +40,8 @@ namespace Fintes_Tracker.Controllers
             {
                 Muscle = muscle,
                 Name = $"{muscle} Training",
-                Repations = rnd.Next(1, 20)
+                Repations = rnd.Next(1, 20),
+                MoodId = rnd.Next(0, 5)
             };
 
             await _dbContext.FitnesTests.AddAsync(fitnes);
