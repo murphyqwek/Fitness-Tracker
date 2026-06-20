@@ -6,5 +6,7 @@
         public string Name { get; set; } = null!;
         public string Muscle { get; set; } = null!;
         public int Repations { get; set; }
+
+        public int MoodId { get; set; }
     }
 }
