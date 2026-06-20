@@ -1,0 +1,37 @@
+version: '3.8'
+
+networks:
+  app-network:
+    driver: bridge
+
+volumes:
+  postgre_data: 
+
+services:
+  app:
+    image: ${IMAGE_NAME}
+    container_name: app-container
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Production
+      - ConnectionStrings__DefaultConnection=Host=db;Port=5432;Database=${DB_NAME};Username=${DB_USER_APP};Password=${DB_PASSWORD_APP};
+    depends_on:
+      - db
+    ports:
+      - "8080:8080"
+    networks:
+      - app-network
+
+  db:
+    image: postgres:18-alpine3.23
+    container_name: db-container
+    restart: always
+    environment:
+      - POSTGRES_USER=${DB_USER_APP}
+      - POSTGRES_PASSWORD=${DB_PASSWORD_APP}
+      - POSTGRES_DB=${DB_NAME}
+    ports:
+      - "${DB_OUT_PORT}:5432"
+    volumes:
+      - postgre_data:/var/lib/postgresql/
+    networks:
+      - app-network
