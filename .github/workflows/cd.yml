@@ -19,17 +19,18 @@ jobs:
       - name: Restore
         run: dotnet restore
         
-      - name: List files
-        run: ls -R
-        
+      - name: Build project
+        run: dotnet build --configuration Release --no-restore
+
       - name: Create EF Migration Bundle
         run: |
             dotnet tool install --global dotnet-ef
             dotnet ef migrations bundle \
-            --project Fintes-Tracker-Infrastructure/Fintes-Tracker-Infrastructure.csproj \
-            --startup-project Fintes-Tracker/Fintes-Tracker.csproj \
-            --output efbundle \
-            --configuration Release
+              --project Fintes-Tracker-Infrastructure/Fintes-Tracker-Infrastructure.csproj \
+              --startup-project Fintes-Tracker/Fintes-Tracker.csproj \
+              --output efbundle \
+              --configuration Release \
+              --no-build
             
       - name: Run Bundle
         run: ./efbundle --connection "${{ secrets.DB_CONNECTION_STRING }}"
