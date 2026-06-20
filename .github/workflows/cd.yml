@@ -22,6 +22,9 @@ jobs:
       - name: Create EF Migration Bundle
         run: |
             dotnet tool install --global dotnet-ef
+            dotnet ef migrations add InitialCreate \
+              --project Fintes-Tracker-Infrastructure/Fintes-Tracker-Infrastructure.csproj \
+              --startup-project Fintes-Tracker/Fintes-Tracker.csproj
             dotnet ef migrations bundle \
               --project Fintes-Tracker-Infrastructure/Fintes-Tracker-Infrastructure.csproj \
               --startup-project Fintes-Tracker/Fintes-Tracker.csproj \
