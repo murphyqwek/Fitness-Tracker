@@ -27,7 +27,6 @@ jobs:
               --startup-project Fintes-Tracker/Fintes-Tracker.csproj \
               --output efbundle \
               --configuration Release \
-              --no-build
             
       - name: Run Bundle
         run: ./efbundle --connection "${{ secrets.DB_CONNECTION_STRING }}"
