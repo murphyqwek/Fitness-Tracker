@@ -49,5 +49,14 @@ namespace Fintes_Tracker.Controllers
 
             return Ok(fitnes);
         }
+
+        [HttpDelete]
+        public async Task<IActionResult> Delete()
+        {
+            _dbContext.FitnesTests.RemoveRange(_dbContext.FitnesTests);
+            await _dbContext.SaveChangesAsync();
+
+            return Ok();
+        }
     }
 }
