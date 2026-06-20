@@ -11,7 +11,7 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace Fintess_Tracker_Infrastructure.Migrations
 {
     [DbContext(typeof(FintessDbContext))]
-    [Migration("20260620234130_AddMoodId")]
+    [Migration("20260620234958_AddMoodId")]
     partial class AddMoodId
     {
         /// <inheritdoc />
@@ -31,6 +31,9 @@ namespace Fintess_Tracker_Infrastructure.Migrations
                         .HasColumnType("integer");
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("MoodId")
+                        .HasColumnType("integer");
 
                     b.Property<string>("Muscle")
                         .IsRequired()

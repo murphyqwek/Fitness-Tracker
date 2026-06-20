@@ -29,6 +29,9 @@ namespace Fintess_Tracker_Infrastructure.Migrations
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
+                    b.Property<int>("MoodId")
+                        .HasColumnType("integer");
+
                     b.Property<string>("Muscle")
                         .IsRequired()
                         .HasColumnType("text");
