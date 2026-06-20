@@ -18,9 +18,6 @@ jobs:
 
       - name: Restore
         run: dotnet restore
-        
-      - name: Build project
-        run: dotnet build --configuration Release --no-restore
 
       - name: Create EF Migration Bundle
         run: |
