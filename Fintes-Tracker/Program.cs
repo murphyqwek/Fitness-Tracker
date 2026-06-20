@@ -1,3 +1,6 @@
+using Fintess_Tracker_Infrastructure.Data;
+using Microsoft.EntityFrameworkCore;
+
 namespace Fintes_Tracker_Api
 {
     public class Program
@@ -9,6 +12,9 @@ namespace Fintes_Tracker_Api
             builder.Services.AddControllers();
             builder.Services.AddEndpointsApiExplorer();
             builder.Services.AddSwaggerGen();
+
+            var conn = builder.Configuration.GetConnectionString("DefaultConnection");
+            builder.Services.AddDbContext<FintessDbContext>(options => options.UseNpgsql(conn));
 
             var app = builder.Build();
 

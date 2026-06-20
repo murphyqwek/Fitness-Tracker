@@ -1,0 +1,53 @@
+name: Build and Push Docker Image
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup dotnet
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+
+      - name: Restore
+        run: dotnet restore
+        
+      - name: Create EF Migration Bundle
+        run: |
+            dotnet tool install --global dotnet-ef
+            dotnet ef migrations bundle --project Fitnes-Tracker-Infrastructure/Fintes-Tracker-Infrastructure.csproj --startup-project Fintes-Tracker/Fintes-Tracker.csproj --output efbundle
+            
+      - name: Run Bundle
+        run: ./efbundle --connection "${{ secrets.DB_CONNECTION_STRING }}"
+
+      - name: Login to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKER_LOGIN }} 
+          password: ${{ secrets.DOCKER_TOKEN }}
+
+      - name: Build and Push
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          push: true
+          tags: ${{ secrets.DOCKER_LOGIN }}/myprojects:latest
+
+      - name: Update Docker Compose
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.SERVER_HOST }}
+          username: ${{ secrets.SERVER_USER }}
+          password: ${{ secrets.SERVER_PASSWORD }}
+          script: |
+            cd ${{ secrets.PATH_TO_DOCKER_COMPOSE }}
+            docker compose pull
+            docker compose up -d
+        
