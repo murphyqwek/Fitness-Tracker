@@ -7,15 +7,15 @@ FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
 ARG BUILD_CONFIGURATION=Release
 WORKDIR /src
 
-COPY ["Fintes-Tracker/Fintes-Tracker.csproj", "Fintes-Tracker/"]
-COPY ["Fintes-Tracker-Application/Fintes-Tracker-Application.csproj", "Fintess-Tracker-Application/"]
-COPY ["Fintes-Tracker-Domain/Fintes-Tracker-Domain.csproj", "Fintess-Tracker-Domain/"]
-COPY ["Fintes-Tracker-Infrastructure/Fintes-Tracker-Infrastructure.csproj", "Fintess-Tracker-Infrastructure/"]
+COPY ["Fitnes-Tracker/Fintes-Tracker.csproj", "Fitnes-Tracker/"]
+COPY ["Fitnes-Tracker-Application/Fintes-Tracker-Application.csproj", "Fitnes-Tracker-Application/"]
+COPY ["Fitnes-Tracker-Domain/Fintes-Tracker-Domain.csproj", "Fitnes-Tracker-Domain/"]
+COPY ["Fitnes-Tracker-Infrastructure/Fintes-Tracker-Infrastructure.csproj", "Fitnes-Tracker-Infrastructure/"]
 
-RUN dotnet restore "Fintes-Tracker/Fintes-Tracker.csproj"
+RUN dotnet restore "Fitnes-Tracker/Fintes-Tracker.csproj"
 
 COPY . .
-WORKDIR "/src/Fintes-Tracker"
+WORKDIR "/src/Fitnes-Tracker"
 
 RUN dotnet build "Fintes-Tracker.csproj" -c $BUILD_CONFIGURATION -o /app/build
 
