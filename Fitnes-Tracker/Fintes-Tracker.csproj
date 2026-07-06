@@ -21,7 +21,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\Fintes-Tracker-Infrastructure\Fintes-Tracker-Infrastructure.csproj" />
+    <ProjectReference Include="..\Fitnes-Tracker-Infrastructure\Fintes-Tracker-Infrastructure.csproj" />
   </ItemGroup>
 
 </Project>
