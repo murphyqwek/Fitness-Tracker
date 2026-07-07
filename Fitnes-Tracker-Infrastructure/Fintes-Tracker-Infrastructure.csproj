@@ -8,9 +8,15 @@
   </PropertyGroup>
   
   <ItemGroup>
+	<PackageReference Include="FluentResults" Version="4.0.0" />
 	<PackageReference Include="Microsoft.EntityFrameworkCore" Version="10.0.9" />
 	<PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="10.0.9" />
 	<PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="10.0.2" />
+  </ItemGroup>
+  
+  <ItemGroup>
+    <ProjectReference Include="..\Fitnes-Tracker-Application\Fintes-Tracker-Application.csproj" />
+    <ProjectReference Include="..\Fitnes-Tracker-Domain\Fintes-Tracker-Domain.csproj" />
   </ItemGroup>
 
 </Project>
