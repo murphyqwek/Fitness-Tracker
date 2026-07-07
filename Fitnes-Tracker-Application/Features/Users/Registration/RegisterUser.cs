@@ -1,12 +1,13 @@
 ﻿using Fintess_Tracker_Application.Repository.User;
 using Fintess_Tracker_Domain.Entity;
+using FluentResults;
 using MediatR;
 
 namespace Fintess_Tracker_Application.Features.Users.Registration
 {
-    public record RegisterUserCommand(string Login, string Password, string Name, DateOnly BirthDay) : IRequest<Guid>;
+    public record RegisterUserCommand(string Login, string Password, string Name, DateOnly BirthDay) : IRequest<Result<Guid>>;
 
-    public class RegisterUserCommandHandler : IRequestHandler<RegisterUserCommand, Guid>
+    public class RegisterUserCommandHandler : IRequestHandler<RegisterUserCommand, Result<Guid>>
     {
         private readonly IUserRepository _userRepository;
 
@@ -15,12 +16,12 @@ namespace Fintess_Tracker_Application.Features.Users.Registration
             _userRepository = userRepository;
         }
 
-        public async Task<Guid> Handle(RegisterUserCommand request, CancellationToken cancellationToken)
+        public async Task<Result<Guid>> Handle(RegisterUserCommand request, CancellationToken cancellationToken)
         {
             bool isLoginTaken = await _userRepository.IsLoginAlreadyTakenAsync(request.Login, cancellationToken);
             if (isLoginTaken)
             {
-                throw new Exception("User's login is already taken");
+                return Result.Fail<Guid>("User's login is already taken");
             }
 
             string hashedPassword = BCrypt.Net.BCrypt.HashPassword(request.Password);
@@ -29,7 +30,7 @@ namespace Fintess_Tracker_Application.Features.Users.Registration
 
             await _userRepository.AddNewUserAsync(user, cancellationToken);
 
-            return user.Id;
+            return Result.Ok(user.Id);
         }
     }
 }
