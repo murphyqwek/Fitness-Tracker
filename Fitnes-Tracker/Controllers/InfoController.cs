@@ -12,7 +12,7 @@ namespace Fintes_Tracker.Controllers
             var info = new
             {
                 Application = "Fintes Tracker",
-                Version = "0.0.1",
+                Version = "0.0.2",
             };
 
             return Ok(info);
