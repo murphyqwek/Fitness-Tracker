@@ -8,9 +8,9 @@ namespace Fintes_Tracker.Controllers
     [ApiController]
     public class RegisterController : ControllerBase
     {
-        private readonly Mediator _mediator;
+        private readonly IMediator _mediator;
 
-        public RegisterController(Mediator mediator)
+        public RegisterController(IMediator mediator)
         {
             _mediator = mediator;
         }
