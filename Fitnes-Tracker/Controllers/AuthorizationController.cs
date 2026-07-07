@@ -8,9 +8,9 @@ namespace Fintes_Tracker.Controllers
     [ApiController]
     public class AuthorizationController : Controller
     {
-        private readonly Mediator _mediator;
+        private readonly IMediator _mediator;
 
-        public AuthorizationController(Mediator mediator)
+        public AuthorizationController(IMediator mediator)
         {
             _mediator = mediator;
         }
