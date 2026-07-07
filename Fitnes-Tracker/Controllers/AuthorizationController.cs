@@ -20,7 +20,7 @@ namespace Fintes_Tracker.Controllers
         {
             var result = await _mediator.Send(command);
 
-            return result.IsSuccess ? Ok(result.Value) : BadRequest(result.Errors);
+            return result.IsSuccess ? Ok(result.Value) : BadRequest(result.Errors.First().Message);
         }
     }
 }

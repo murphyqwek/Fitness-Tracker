@@ -25,7 +25,7 @@ namespace Fintes_Tracker.Controllers
             }
             else
             {
-                return BadRequest(result.Errors);
+                return BadRequest(result.Errors.First().Message);
             }
         }
     }
