@@ -17,7 +17,7 @@
             Order = order;
         }
 
-        public WorkoutSet(Exercise exercise, int repetitions, decimal weight, int order) : this(Guid.NewGuid(), exercise, repetitions, weight, order)
+        public WorkoutSet(Exercise exercise, int repetitions, decimal weight, int order) : this(Guid.CreateVersion7(), exercise, repetitions, weight, order)
         {
         }
     }

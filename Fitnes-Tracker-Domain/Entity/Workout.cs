@@ -16,7 +16,7 @@
             Date = date;
         }
 
-        public Workout(User user, DateTime date, List<WorkoutSet> workoutSets) : this(Guid.NewGuid(), user, date)
+        public Workout(User user, DateTime date, List<WorkoutSet> workoutSets) : this(Guid.CreateVersion7(), user, date)
         {
             _workoutSets = workoutSets;
         }
