@@ -18,7 +18,7 @@
             BirthDay = birthDay;
         }
 
-        public User(string login, string password, string name, DateOnly? birthDay) : this(Guid.NewGuid(), login, password, name, birthDay)
+        public User(string login, string password, string name, DateOnly? birthDay) : this(Guid.CreateVersion7(), login, password, name, birthDay)
         {
         }
     }
