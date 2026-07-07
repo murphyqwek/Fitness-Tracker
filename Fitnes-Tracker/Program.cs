@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using Fintess_Tracker_Infrastructure.Data;
+using Fintess_Tracker_Application.Features.Users.Registration;
 namespace Fintes_Tracker_Api
 {
     public class Program
@@ -14,6 +15,10 @@ namespace Fintes_Tracker_Api
 
             var conn = builder.Configuration.GetConnectionString("DefaultConnection");
             builder.Services.AddDbContext<ApplicationDbContext>(options => options.UseNpgsql(conn));
+
+            builder.Services.AddMediatR(cfg => cfg.RegisterServicesFromAssembly(typeof(RegisterUserCommand).Assembly));
+
+            builder.Services.AddScoped<Fintess_Tracker_Application.Repository.User.IUserRepository, Fintess_Tracker_Infrastructure.Repository.UserRepository>();
 
             var app = builder.Build();
 
