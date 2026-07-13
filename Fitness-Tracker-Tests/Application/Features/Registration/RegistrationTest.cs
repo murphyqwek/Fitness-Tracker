@@ -1,4 +1,5 @@
-﻿using Fitness_Tracker_Application.Features.Users.Registration;
+﻿using Fitness_Tracker_Application.DTO.User;
+using Fitness_Tracker_Application.Features.Users.Registration;
 using Fitness_Tracker_Application.Repository.User;
 using Fitness_Tracker_Domain.Entity;
 using Moq;
@@ -22,7 +23,10 @@ namespace Fitness_Tracker_Tests.Application.Features.Registration
             var result = await handler.Handle(command, CancellationToken.None);
 
             Assert.True(result.IsSuccess);
-            Assert.NotEqual(Guid.Empty, result.Value);
+
+            var userDTO = new UserDTO(command.Login, command.Name, command.BirthDay, result.Value.Id);
+
+            Assert.Equal(userDTO, result.Value);
 
             mockUserRepository.Verify(
                 repo => repo.AddNewUserAsync(It.IsAny<User>(), It.IsAny<CancellationToken>()),

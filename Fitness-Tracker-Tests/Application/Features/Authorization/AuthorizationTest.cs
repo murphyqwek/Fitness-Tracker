@@ -33,7 +33,7 @@ namespace Fitness_Tracker_Tests.Application.Features.Authorization
 
 
             Assert.True(result.IsSuccess);
-            Assert.Equal(user.Id, result.Value);
+            Assert.Equal(user.Id, result.Value.Id);
         }
 
         [Fact]
