@@ -1,6 +1,13 @@
 using Microsoft.EntityFrameworkCore;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.IdentityModel.Tokens;
+
 using Fitness_Tracker_Infrastructure.Data;
 using Fitness_Tracker_Application.Features.Users.Registration;
+
+using System.Text;
+using Fitness_Tracker.DTO.Configuration;
+using Fitness_Tracker.Services;
 namespace Fitness_Tracker_Api
 {
     public class Program
@@ -20,6 +27,31 @@ namespace Fitness_Tracker_Api
 
             builder.Services.AddScoped<Fitness_Tracker_Application.Repository.User.IUserRepository, Fitness_Tracker_Infrastructure.Repository.UserRepository>();
 
+            builder.Services.Configure<JwtConfigDTO>(builder.Configuration.GetSection("Jwt"));
+            builder.Services.AddScoped<GenerateJwtTokenService>();
+
+            builder.Services.AddAuthentication(configureOptions =>
+            {
+                configureOptions.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
+                configureOptions.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
+            }).AddJwtBearer(options =>
+            {
+                options.TokenValidationParameters = new TokenValidationParameters
+                {
+                    ValidateIssuer = true,
+                    ValidateIssuerSigningKey = true,
+                    ValidateAudience = true,
+                    ValidateLifetime = true,
+
+                    ValidIssuer = builder.Configuration["Jwt:Issuer"],
+                    ValidAlgorithms = new[] { SecurityAlgorithms.HmacSha256 },
+                    ValidAudience = builder.Configuration["Jwt:Audience"],
+                    IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(builder.Configuration["Jwt:Key"]!))
+                };
+            });
+
+            builder.Services.AddAuthorization();
+
             var app = builder.Build();
 
             app.UseSwagger();
@@ -33,6 +65,7 @@ namespace Fitness_Tracker_Api
 
             app.UseHttpsRedirection();
 
+            app.UseAuthentication();
             app.UseAuthorization();
 
 

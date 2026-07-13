@@ -1,12 +1,13 @@
 ﻿using Fitness_Tracker_Application.Repository.User;
+using Fitness_Tracker_Application.DTO.User;
 using FluentResults;
 using MediatR;
 
 namespace Fitness_Tracker_Application.Features.Users.Authorization
 {
-    public record AuthorizateUserCommand(string Login, string Password) : IRequest<Result<Guid>>;
+    public record AuthorizateUserCommand(string Login, string Password) : IRequest<Result<UserDTO>>;
 
-    public class AuthorizateUserCommandHandler : IRequestHandler<AuthorizateUserCommand, Result<Guid>>
+    public class AuthorizateUserCommandHandler : IRequestHandler<AuthorizateUserCommand, Result<UserDTO>>
     {
         private readonly IUserRepository _userRepository;
 
@@ -15,24 +16,25 @@ namespace Fitness_Tracker_Application.Features.Users.Authorization
             _userRepository = userRepository;
         }
 
-        public async Task<Result<Guid>> Handle(AuthorizateUserCommand request, CancellationToken cancellationToken)
+        public async Task<Result<UserDTO>> Handle(AuthorizateUserCommand request, CancellationToken cancellationToken)
         {
             var result = await _userRepository.GetUserByLoginAsync(request.Login, cancellationToken);
 
             if (result.IsFailed)
             {
-                return Result.Fail<Guid>("User not found");
+                return Result.Fail<UserDTO>("User not found");
             }
 
-            bool isVerified =BCrypt.Net.BCrypt.Verify(request.Password, result.Value.Password);
+            bool isVerified = BCrypt.Net.BCrypt.Verify(request.Password, result.Value.Password);
 
             if (isVerified)
             {
-                return Result.Ok(result.Value.Id);
+                var userDTO = new UserDTO(result.Value.Login, result.Value.Name, result.Value.BirthDay, result.Value.Id);
+                return Result.Ok(userDTO);
             }
             else
             {
-                return Result.Fail<Guid>("Invalid password");
+                return Result.Fail<UserDTO>("Invalid password");
             }
         }
     }

@@ -2,12 +2,13 @@
 using Fitness_Tracker_Domain.Entity;
 using FluentResults;
 using MediatR;
+using Fitness_Tracker_Application.DTO.User;
 
 namespace Fitness_Tracker_Application.Features.Users.Registration
 {
-    public record RegisterUserCommand(string Login, string Password, string Name, DateOnly BirthDay) : IRequest<Result<Guid>>;
+    public record RegisterUserCommand(string Login, string Password, string Name, DateOnly BirthDay) : IRequest<Result<UserDTO>>;
 
-    public class RegisterUserCommandHandler : IRequestHandler<RegisterUserCommand, Result<Guid>>
+    public class RegisterUserCommandHandler : IRequestHandler<RegisterUserCommand, Result<UserDTO>>
     {
         private readonly IUserRepository _userRepository;
 
@@ -16,12 +17,12 @@ namespace Fitness_Tracker_Application.Features.Users.Registration
             _userRepository = userRepository;
         }
 
-        public async Task<Result<Guid>> Handle(RegisterUserCommand request, CancellationToken cancellationToken)
+        public async Task<Result<UserDTO>> Handle(RegisterUserCommand request, CancellationToken cancellationToken)
         {
             bool isLoginTaken = await _userRepository.IsLoginAlreadyTakenAsync(request.Login, cancellationToken);
             if (isLoginTaken)
             {
-                return Result.Fail<Guid>("User's login is already taken");
+                return Result.Fail<UserDTO>("User's login is already taken");
             }
 
             string hashedPassword = BCrypt.Net.BCrypt.HashPassword(request.Password);
@@ -30,7 +31,7 @@ namespace Fitness_Tracker_Application.Features.Users.Registration
 
             await _userRepository.AddNewUserAsync(user, cancellationToken);
 
-            return Result.Ok(user.Id);
+            return Result.Ok(new UserDTO(request.Login, request.Name, request.BirthDay, user.Id));
         }
     }
 }
