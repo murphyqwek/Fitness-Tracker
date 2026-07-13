@@ -62,5 +62,5 @@ jobs:
           script: |
             cd ${{ secrets.PATH_TO_DOCKER_COMPOSE }}
             docker compose pull
-            docker compose up -d
+            docker compose up -d --remove-orphans
         
