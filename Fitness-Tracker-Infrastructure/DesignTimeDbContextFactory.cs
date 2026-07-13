@@ -11,7 +11,7 @@ namespace Fitness_Tracker_Infrastructure
         {
             IConfigurationRoot configuration = new ConfigurationBuilder()
                 .SetBasePath(Directory.GetCurrentDirectory())
-                .AddJsonFile(Path.Combine(Directory.GetCurrentDirectory(), "Fitness-Tracker", "appsettings.json"), optional: true)
+                .AddJsonFile("appsettings.json", optional: true)
                 .AddEnvironmentVariables()
                 .Build();
 

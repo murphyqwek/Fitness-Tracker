@@ -33,7 +33,11 @@ jobs:
             
       - name: Run Bundle
         run: |
+            # Копируем конфиг из папки проекта в корень к бандлу
+            cp Fitness-Tracker/appsettings.json .
+            
             chmod +x ./efbundle
+            # Передаем строку подключения из секретов
             ./efbundle --connection "${{ secrets.DB_CONNECTION_STRING }}"
 
       - name: Login to Docker Hub
