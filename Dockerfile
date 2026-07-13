@@ -7,23 +7,23 @@ FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
 ARG BUILD_CONFIGURATION=Release
 WORKDIR /src
 
-COPY ["Fitnes-Tracker/Fintes-Tracker.csproj", "Fitnes-Tracker/"]
-COPY ["Fitnes-Tracker-Application/Fintes-Tracker-Application.csproj", "Fitnes-Tracker-Application/"]
-COPY ["Fitnes-Tracker-Domain/Fintes-Tracker-Domain.csproj", "Fitnes-Tracker-Domain/"]
-COPY ["Fitnes-Tracker-Infrastructure/Fintes-Tracker-Infrastructure.csproj", "Fitnes-Tracker-Infrastructure/"]
+COPY ["Fitness-Tracker/Fitness-Tracker.csproj", "Fitness-Tracker/"]
+COPY ["Fitness-Tracker-Application/Fitness-Tracker-Application.csproj", "Fitness-Tracker-Application/"]
+COPY ["Fitness-Tracker-Domain/Fitness-Tracker-Domain.csproj", "Fitness-Tracker-Domain/"]
+COPY ["Fitness-Tracker-Infrastructure/Fitness-Tracker-Infrastructure.csproj", "Fitness-Tracker-Infrastructure/"]
 
-RUN dotnet restore "Fitnes-Tracker/Fintes-Tracker.csproj"
+RUN dotnet restore "Fitness-Tracker/Fitness-Tracker.csproj"
 
 COPY . .
-WORKDIR "/src/Fitnes-Tracker"
+WORKDIR "/src/Fitness-Tracker"
 
-RUN dotnet build "Fintes-Tracker.csproj" -c $BUILD_CONFIGURATION -o /app/build
+RUN dotnet build "Fitness-Tracker.csproj" -c $BUILD_CONFIGURATION -o /app/build
 
 FROM build AS publish
 ARG BUILD_CONFIGURATION=Release
-RUN dotnet publish "Fintes-Tracker.csproj" -c $BUILD_CONFIGURATION -o /app/publish /p:UseAppHost=false
+RUN dotnet publish "Fitness-Tracker.csproj" -c $BUILD_CONFIGURATION -o /app/publish /p:UseAppHost=false
 
 FROM base AS final
 WORKDIR /app
 COPY --from=publish /app/publish .
-ENTRYPOINT ["dotnet", "Fintes-Tracker.dll"]
+ENTRYPOINT ["dotnet", "Fitness-Tracker.dll"]

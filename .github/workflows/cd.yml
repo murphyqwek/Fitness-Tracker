@@ -23,7 +23,7 @@ jobs:
         run: |
             ls -la
             dotnet tool install --global dotnet-ef
-            dotnet ef migrations bundle --project Fitnes-Tracker-Infrastructure/Fintes-Tracker-Infrastructure.csproj --startup-project Fitnes-Tracker/Fintes-Tracker.csproj --output efbundle
+            dotnet ef migrations bundle --project Fitness-Tracker-Infrastructure/Fitness-Tracker-Infrastructure.csproj --startup-project Fitness-Tracker/Fitness-Tracker.csproj --output efbundle
             
       - name: Run Bundle
         run: ./efbundle --connection "${{ secrets.DB_CONNECTION_STRING }}"
