@@ -25,6 +25,7 @@ namespace Fitness_Tracker.Services
             List<Claim> claims = new List<Claim>()
             {
                 new Claim(JwtRegisteredClaimNames.Sub, user.Id.ToString()),
+                new Claim(JwtRegisteredClaimNames.UniqueName, user.Login),
                 new Claim(JwtRegisteredClaimNames.Name, user.Name),
             };
 
