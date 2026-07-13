@@ -30,6 +30,13 @@ namespace Fitness_Tracker_Api
             builder.Services.Configure<JwtConfigDTO>(builder.Configuration.GetSection("Jwt"));
             builder.Services.AddScoped<GenerateJwtTokenService>();
 
+            var jwtKey = builder.Configuration["Jwt:Key"];
+
+            if (string.IsNullOrEmpty(jwtKey))
+            {
+                jwtKey = "temporary_secret_key_for_migrations_only_32_chars_long";
+            }
+
             builder.Services.AddAuthentication(configureOptions =>
             {
                 configureOptions.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
