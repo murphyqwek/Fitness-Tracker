@@ -25,7 +25,7 @@ namespace Fitness_Tracker.Controllers
         {
             var result = await _mediator.Send(command);
 
-            if (!result.IsSuccess)
+            if (result.IsFailed)
             {
                 return BadRequest(result.Errors.First().Message);
             }

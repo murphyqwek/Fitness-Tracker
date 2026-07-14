@@ -24,7 +24,7 @@ namespace Fitness_Tracker.Controllers
         public async Task<IActionResult> RegisterUser([FromBody] RegisterUserCommand command)
         {
             var result = await _mediator.Send(command);
-            if (result.IsSuccess)
+            if (result.IsFailed)
             {
                 return BadRequest(result.Errors.First().Message);
             }
