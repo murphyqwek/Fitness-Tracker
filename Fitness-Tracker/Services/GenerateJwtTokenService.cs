@@ -33,7 +33,7 @@ namespace Fitness_Tracker.Services
                 issuer: _configuration.Issuer,
                 audience: _configuration.Audience,
                 claims: claims,
-                expires: DateTime.UtcNow.AddHours(15),
+                expires: DateTime.UtcNow.AddMinutes(15),
                 signingCredentials: signingCredentials);
 
             return new JwtSecurityTokenHandler().WriteToken(token);
