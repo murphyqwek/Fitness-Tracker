@@ -1,4 +1,4 @@
-name: EF Migration and CD
+name: CD only
 
 on:
   workflow_dispatch:
