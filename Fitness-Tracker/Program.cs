@@ -6,8 +6,6 @@ using Fitness_Tracker_Infrastructure.Data;
 using Fitness_Tracker_Application.Features.Users.Registration;
 
 using System.Text;
-using Fitness_Tracker.DTO.Configuration;
-using Fitness_Tracker.Services;
 using Fitness_Tracker_Infrastructure.Repository.User;
 using Fitness_Tracker_Application.Repository.Refresh;
 using Fitness_Tracker_Infrastructure.Repository.Refresh;
@@ -33,7 +31,7 @@ namespace Fitness_Tracker_Api
             builder.Services.AddScoped<Fitness_Tracker_Application.Repository.User.IUserRepository, UserRepository>();
 
             builder.Services.Configure<JwtConfigDTO>(builder.Configuration.GetSection("Jwt"));
-            builder.Services.AddScoped<GenerateJwtTokenService>();
+            builder.Services.AddScoped<GenerateJwtToken>();
 
             var jwtKey = builder.Configuration["Jwt:Key"];
 
