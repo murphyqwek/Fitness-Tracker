@@ -61,7 +61,6 @@ jobs:
           password: ${{ secrets.SERVER_PASSWORD }}
           script: |
             cd ${{ secrets.PATH_TO_DOCKER_COMPOSE }}
-            docker compose down 
             docker compose pull
-            docker compose up -d --remove-orphans
+            docker compose up -d app --remove-orphans
         
