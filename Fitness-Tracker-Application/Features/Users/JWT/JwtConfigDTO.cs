@@ -1,4 +1,4 @@
-﻿namespace Fitness_Tracker.DTO.Configuration
+﻿namespace Fitness_Tracker_Application.Features.Users.JWT
 {
     public class JwtConfigDTO
     {

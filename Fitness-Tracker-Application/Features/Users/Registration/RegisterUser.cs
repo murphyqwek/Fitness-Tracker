@@ -1,8 +1,9 @@
-﻿using Fitness_Tracker_Application.Repository.User;
+﻿using Fitness_Tracker_Application.DTO.User;
+using Fitness_Tracker_Application.Mappers;
+using Fitness_Tracker_Application.Repository.User;
 using Fitness_Tracker_Domain.Entity;
 using FluentResults;
 using MediatR;
-using Fitness_Tracker_Application.DTO.User;
 
 namespace Fitness_Tracker_Application.Features.Users.Registration
 {
@@ -31,7 +32,7 @@ namespace Fitness_Tracker_Application.Features.Users.Registration
 
             await _userRepository.AddNewUserAsync(user, cancellationToken);
 
-            return Result.Ok(new UserDTO(request.Login, request.Name, request.BirthDay, user.Id));
+            return Result.Ok(UserDTOMapper.MapToDTO(user));
         }
     }
 }

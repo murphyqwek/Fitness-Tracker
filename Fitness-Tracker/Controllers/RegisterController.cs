@@ -1,4 +1,6 @@
 ﻿using Fitness_Tracker.Services;
+using Fitness_Tracker_Application.Features.Users.JWT;
+using Fitness_Tracker_Application.Features.Users.Refresh;
 using Fitness_Tracker_Application.Features.Users.Registration;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
@@ -19,24 +21,23 @@ namespace Fitness_Tracker.Controllers
 
         [HttpPost]
         [AllowAnonymous]
-        public async Task<IActionResult> RegisterUser([FromBody] RegisterUserCommand command, [FromServices] GenerateJwtTokenService jwtService)
+        public async Task<IActionResult> RegisterUser([FromBody] RegisterUserCommand command)
         {
             var result = await _mediator.Send(command);
             if (result.IsSuccess)
             {
-                var token = jwtService.Generate(result.Value);
-
-                Response.Cookies.Append("accessToken", token, new CookieOptions
-                {
-                    Secure = true,
-                    SameSite = SameSiteMode.Strict,
-                    HttpOnly = true,
-                });
-
-                return Ok();
+                return BadRequest(result.Errors.First().Message);
             }
 
-            return BadRequest(result.Errors.First().Message);
+            var refreshToken = await _mediator.Send(new GenerateRefreshTokenCommand());
+
+            await _mediator.Send(new AddRefreshTokenCommand(refreshToken, result.Value.Id, TimeSpan.FromHours(24)));
+
+            var accessToken = await _mediator.Send(new GenerateJwtTokenCommand(result.Value));
+
+            CookiesHelper.SetAccessAndRefreshTokenCookies(Response, accessToken, refreshToken);
+
+            return Ok();
         }
     }
 }

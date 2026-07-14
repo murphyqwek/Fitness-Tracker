@@ -38,5 +38,17 @@ namespace Fitness_Tracker_Infrastructure.Repository.User
 
             return Result.Ok(UserMapper.MapToDomain(user));
         }
+
+        public async Task<Result<Fitness_Tracker_Domain.Entity.User>> GetUserByIdAsync(Guid userId, CancellationToken cancellationToken)
+        {
+            var user = await _dbContext.Users.FirstOrDefaultAsync(user => user.Id == userId, cancellationToken);
+
+            if(user == null)
+            {
+                return Result.Fail<Fitness_Tracker_Domain.Entity.User>("User not found");
+            }
+
+            return Result.Ok(UserMapper.MapToDomain(user));
+        }
     }
 }

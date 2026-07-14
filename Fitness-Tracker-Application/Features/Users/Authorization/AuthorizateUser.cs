@@ -2,6 +2,7 @@
 using Fitness_Tracker_Application.DTO.User;
 using FluentResults;
 using MediatR;
+using Fitness_Tracker_Application.Mappers;
 
 namespace Fitness_Tracker_Application.Features.Users.Authorization
 {
@@ -29,7 +30,7 @@ namespace Fitness_Tracker_Application.Features.Users.Authorization
 
             if (isVerified)
             {
-                var userDTO = new UserDTO(result.Value.Login, result.Value.Name, result.Value.BirthDay, result.Value.Id);
+                var userDTO = UserDTOMapper.MapToDTO(result.Value);
                 return Result.Ok(userDTO);
             }
             else

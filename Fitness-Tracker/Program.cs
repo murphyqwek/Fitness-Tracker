@@ -12,6 +12,7 @@ using Fitness_Tracker_Infrastructure.Repository.User;
 using Fitness_Tracker_Application.Repository.Refresh;
 using Fitness_Tracker_Infrastructure.Repository.Refresh;
 using StackExchange.Redis;
+using Fitness_Tracker_Application.Features.Users.JWT;
 namespace Fitness_Tracker_Api
 {
     public class Program
