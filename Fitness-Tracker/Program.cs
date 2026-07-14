@@ -8,6 +8,10 @@ using Fitness_Tracker_Application.Features.Users.Registration;
 using System.Text;
 using Fitness_Tracker.DTO.Configuration;
 using Fitness_Tracker.Services;
+using Fitness_Tracker_Infrastructure.Repository.User;
+using Fitness_Tracker_Application.Repository.Refresh;
+using Fitness_Tracker_Infrastructure.Repository.Refresh;
+using StackExchange.Redis;
 namespace Fitness_Tracker_Api
 {
     public class Program
@@ -25,7 +29,7 @@ namespace Fitness_Tracker_Api
 
             builder.Services.AddMediatR(cfg => cfg.RegisterServicesFromAssembly(typeof(RegisterUserCommand).Assembly));
 
-            builder.Services.AddScoped<Fitness_Tracker_Application.Repository.User.IUserRepository, Fitness_Tracker_Infrastructure.Repository.UserRepository>();
+            builder.Services.AddScoped<Fitness_Tracker_Application.Repository.User.IUserRepository, UserRepository>();
 
             builder.Services.Configure<JwtConfigDTO>(builder.Configuration.GetSection("Jwt"));
             builder.Services.AddScoped<GenerateJwtTokenService>();
@@ -68,6 +72,14 @@ namespace Fitness_Tracker_Api
                     }
                 };
             });
+
+            builder.Services.AddSingleton<IConnectionMultiplexer>(cm =>
+            {
+                ConfigurationOptions options = ConfigurationOptions.Parse(builder.Configuration.GetConnectionString("Redis")!, true);
+                return ConnectionMultiplexer.Connect(options);
+            });
+
+            builder.Services.AddScoped<IRefreshTokenRepository, RedisRefreshTokenRepository>();
 
             builder.Services.AddAuthorization();
 
