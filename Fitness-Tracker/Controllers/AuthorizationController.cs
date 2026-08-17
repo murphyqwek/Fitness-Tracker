@@ -1,4 +1,5 @@
-﻿using Fitness_Tracker.Services;
+﻿using Fitness_Tracker.DTO;
+using Fitness_Tracker.Services;
 using Fitness_Tracker_Application.Features.Users.Authorization;
 using Fitness_Tracker_Application.Features.Users.JWT;
 using Fitness_Tracker_Application.Features.Users.Refresh;
@@ -38,7 +39,9 @@ namespace Fitness_Tracker.Controllers
 
             CookiesHelper.SetAccessAndRefreshTokenCookies(Response, accessToken, refreshToken);
 
-            return Ok();
+            var userDTO = result.Value;
+
+            return Ok(new UserAuthResponse(userDTO.Id, userDTO.Login, userDTO.Name));
         }
     }
 }

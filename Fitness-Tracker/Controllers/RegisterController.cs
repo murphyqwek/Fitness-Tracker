@@ -1,4 +1,5 @@
-﻿using Fitness_Tracker.Services;
+﻿using Fitness_Tracker.DTO;
+using Fitness_Tracker.Services;
 using Fitness_Tracker_Application.Features.Users.JWT;
 using Fitness_Tracker_Application.Features.Users.Refresh;
 using Fitness_Tracker_Application.Features.Users.Registration;
@@ -8,7 +9,7 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace Fitness_Tracker.Controllers
 {
-    [Route("api/register")]
+    [Route("api/auth")]
     [ApiController]
     public class RegisterController : ControllerBase
     {
@@ -19,7 +20,7 @@ namespace Fitness_Tracker.Controllers
             _mediator = mediator;
         }
 
-        [HttpPost]
+        [HttpPost("register")]
         [AllowAnonymous]
         public async Task<IActionResult> RegisterUser([FromBody] RegisterUserCommand command)
         {
@@ -37,7 +38,9 @@ namespace Fitness_Tracker.Controllers
 
             CookiesHelper.SetAccessAndRefreshTokenCookies(Response, accessToken, refreshToken);
 
-            return Ok();
+            var userDTO = result.Value;
+
+            return Ok(new UserAuthResponse(userDTO.Id, userDTO.Login, userDTO.Name));
         }
     }
 }

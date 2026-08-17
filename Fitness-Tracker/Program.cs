@@ -82,6 +82,20 @@ namespace Fitness_Tracker_Api
 
             builder.Services.AddAuthorization();
 
+            if (builder.Environment.IsDevelopment())
+            {
+                builder.Services.AddCors(options =>
+                {
+                    options.AddPolicy("AllowAll", builder =>
+                    {
+                        builder.AllowAnyOrigin()
+                                .AllowAnyMethod()
+                                .AllowAnyHeader()
+                                .AllowCredentials();
+                    });
+                });
+            }
+
             var app = builder.Build();
 
             app.UseSwagger();
