@@ -1,9 +1,6 @@
 ﻿using Fitness_Tracker_Application.Features.Users.JWT;
 using FluentResults;
 using MediatR;
-using System;
-using System.Collections.Generic;
-using System.Text;
 
 namespace Fitness_Tracker_Application.Features.Users.Refresh
 {
@@ -45,6 +42,8 @@ namespace Fitness_Tracker_Application.Features.Users.Refresh
 
             var accessToken = await _mediator.Send(new GenerateJwtTokenCommand(userResult.Value));
             var newRefreshToken = await _mediator.Send(new GenerateRefreshTokenCommand());
+
+            await _mediator.Send(new DeleteRefreshTokenCommand(refreshToken));
 
             await _mediator.Send(new AddRefreshTokenCommand(newRefreshToken, userResult.Value.Id, TimeSpan.FromHours(24)));
             
