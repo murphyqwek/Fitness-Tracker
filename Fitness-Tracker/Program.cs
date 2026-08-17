@@ -89,8 +89,9 @@ namespace Fitness_Tracker_Api
 
             if (app.Environment.IsDevelopment())
             {
-                app.UseSwagger();
-                app.UseSwaggerUI();
+                using var scope = app.Services.CreateScope();
+                var context = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+                context.Database.Migrate();
             }
 
             app.UseHttpsRedirection();
