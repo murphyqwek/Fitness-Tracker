@@ -1,16 +1,16 @@
-using Microsoft.EntityFrameworkCore;
-using Microsoft.AspNetCore.Authentication.JwtBearer;
-using Microsoft.IdentityModel.Tokens;
-
-using Fitness_Tracker_Infrastructure.Data;
-using Fitness_Tracker_Application.Features.Users.Registration;
-
-using System.Text;
-using Fitness_Tracker_Infrastructure.Repository.User;
-using Fitness_Tracker_Application.Repository.Refresh;
-using Fitness_Tracker_Infrastructure.Repository.Refresh;
-using StackExchange.Redis;
 using Fitness_Tracker_Application.Features.Users.JWT;
+using Fitness_Tracker_Application.Features.Users.Registration;
+using Fitness_Tracker_Application.Repository.Refresh;
+using Fitness_Tracker_Application.Validation;
+using Fitness_Tracker_Infrastructure.Data;
+using Fitness_Tracker_Infrastructure.Repository.Refresh;
+using Fitness_Tracker_Infrastructure.Repository.User;
+using FluentValidation;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.IdentityModel.Tokens;
+using StackExchange.Redis;
+using System.Text;
 namespace Fitness_Tracker_Api
 {
     public class Program
@@ -29,12 +29,22 @@ namespace Fitness_Tracker_Api
             builder.Services.AddAutoMapper(cfg => cfg.AddMaps(typeof(RegisterUserCommand).Assembly));
             builder.Services.AddAutoMapper(cfg => cfg.AddMaps(typeof(UserRepository).Assembly));
 
-            builder.Services.AddMediatR(cfg => cfg.RegisterServicesFromAssembly(typeof(RegisterUserCommand).Assembly));
+            builder.Services.AddValidatorsFromAssembly(typeof(RegisterUserCommand).Assembly);
+
+            builder.Services.AddMediatR(cfg => 
+                {
+                    cfg.RegisterServicesFromAssembly(typeof(RegisterUserCommand).Assembly);
+                    cfg.AddOpenBehavior(typeof(ValidationBehavior<,>));
+                }
+            );
 
             builder.Services.AddScoped<Fitness_Tracker_Application.Repository.User.IUserRepository, UserRepository>();
 
             builder.Services.Configure<JwtConfigDTO>(builder.Configuration.GetSection("Jwt"));
             builder.Services.AddScoped<GenerateJwtToken>();
+
+            builder.Services.AddExceptionHandler<ValidationExceptionHandler>();
+            builder.Services.AddProblemDetails();
 
             var jwtKey = builder.Configuration["Jwt:Key"];
 
@@ -100,6 +110,8 @@ namespace Fitness_Tracker_Api
             }
 
             var app = builder.Build();
+
+            app.UseExceptionHandler();
 
             app.UseSwagger();
             app.UseSwaggerUI();
