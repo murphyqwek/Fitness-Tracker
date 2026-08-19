@@ -2,7 +2,7 @@
 using Fitness_Tracker_Application.DTO.User;
 using FluentResults;
 using MediatR;
-using Fitness_Tracker_Application.Mappers;
+using AutoMapper;
 
 namespace Fitness_Tracker_Application.Features.Users.Authorization
 {
@@ -11,10 +11,11 @@ namespace Fitness_Tracker_Application.Features.Users.Authorization
     public class AuthorizateUserCommandHandler : IRequestHandler<AuthorizateUserCommand, Result<UserDTO>>
     {
         private readonly IUserRepository _userRepository;
-
-        public AuthorizateUserCommandHandler(IUserRepository userRepository)
+        private readonly IMapper _mapper;
+        public AuthorizateUserCommandHandler(IUserRepository userRepository, IMapper mapper)
         {
             _userRepository = userRepository;
+            _mapper = mapper;
         }
 
         public async Task<Result<UserDTO>> Handle(AuthorizateUserCommand request, CancellationToken cancellationToken)
@@ -30,7 +31,7 @@ namespace Fitness_Tracker_Application.Features.Users.Authorization
 
             if (isVerified)
             {
-                var userDTO = UserDTOMapper.MapToDTO(result.Value);
+                var userDTO = _mapper.Map<UserDTO>(result.Value);
                 return Result.Ok(userDTO);
             }
             else

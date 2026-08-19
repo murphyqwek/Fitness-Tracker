@@ -1,5 +1,5 @@
-﻿using Fitness_Tracker_Application.DTO.User;
-using Fitness_Tracker_Application.Mappers;
+﻿using AutoMapper;
+using Fitness_Tracker_Application.DTO.User;
 using Fitness_Tracker_Application.Repository.User;
 using FluentResults;
 using MediatR;
@@ -10,10 +10,11 @@ namespace Fitness_Tracker_Application.Features.Users
     public class GetUserById : IRequestHandler<GetUserByIdCommand, Result<UserDTO>>
     {
         private readonly IUserRepository _repository;
-
-        public GetUserById(IUserRepository repository)
+        private readonly IMapper _mapper;
+        public GetUserById(IUserRepository repository, IMapper mapper)
         {
             _repository = repository;
+            _mapper = mapper;
         }
 
         public async Task<Result<UserDTO>> Handle(GetUserByIdCommand request, CancellationToken cancellationToken)
@@ -25,7 +26,7 @@ namespace Fitness_Tracker_Application.Features.Users
                 return Result.Fail<UserDTO>(result.Errors);
             }
 
-            var userDTO = UserDTOMapper.MapToDTO(result.Value);
+            var userDTO = _mapper.Map<UserDTO>(result.Value);
 
             return Result.Ok(userDTO);
         }

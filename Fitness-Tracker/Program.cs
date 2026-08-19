@@ -26,6 +26,9 @@ namespace Fitness_Tracker_Api
             var conn = builder.Configuration.GetConnectionString("DefaultConnection");
             builder.Services.AddDbContext<ApplicationDbContext>(options => options.UseNpgsql(conn));
 
+            builder.Services.AddAutoMapper(cfg => cfg.AddMaps(typeof(RegisterUserCommand).Assembly));
+            builder.Services.AddAutoMapper(cfg => cfg.AddMaps(typeof(UserRepository).Assembly));
+
             builder.Services.AddMediatR(cfg => cfg.RegisterServicesFromAssembly(typeof(RegisterUserCommand).Assembly));
 
             builder.Services.AddScoped<Fitness_Tracker_Application.Repository.User.IUserRepository, UserRepository>();

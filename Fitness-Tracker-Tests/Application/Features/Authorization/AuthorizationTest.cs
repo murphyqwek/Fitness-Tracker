@@ -1,13 +1,32 @@
-﻿using Fitness_Tracker_Application.Features.Users.Authorization;
+﻿using AutoMapper;
+using Fitness_Tracker_Application.Features.Users.Authorization;
+using Fitness_Tracker_Application.Mapping;
 using Fitness_Tracker_Application.Repository.User;
 using Fitness_Tracker_Domain.Entity;
 using FluentResults;
+using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
 
 namespace Fitness_Tracker_Tests.Application.Features.Authorization
 {
     public class AuthorizationTest
     {
+        private readonly IMapper _mapper;
+
+        public AuthorizationTest()
+        {
+            var mapperConfig = new MapperConfiguration(cfg =>
+                {
+                    cfg.AddProfile<UserMappingProfile>();
+                },
+                NullLoggerFactory.Instance
+            );
+
+            mapperConfig.AssertConfigurationIsValid();
+
+            _mapper = mapperConfig.CreateMapper();
+        }
+
         [Fact]
         public async Task Handle_WhenUserExistsAndPasswordIsCorrect_ShouldReturnSuccess()
         {
@@ -18,9 +37,7 @@ namespace Fitness_Tracker_Tests.Application.Features.Authorization
             (
                 guid,
                 "ExistingUser",
-                BCrypt.Net.BCrypt.HashPassword("correctPassword"),
-                "Андрей",
-                new DateOnly(2002, 12, 12)
+                BCrypt.Net.BCrypt.HashPassword("correctPassword")
             );
 
             mockUserRepository
@@ -28,7 +45,7 @@ namespace Fitness_Tracker_Tests.Application.Features.Authorization
                 .ReturnsAsync(Result.Ok(user));
 
 
-            var handler = new AuthorizateUserCommandHandler(mockUserRepository.Object);
+            var handler = new AuthorizateUserCommandHandler(mockUserRepository.Object, _mapper);
             var result = await handler.Handle(command, CancellationToken.None);
 
 
@@ -46,9 +63,7 @@ namespace Fitness_Tracker_Tests.Application.Features.Authorization
             (
                 guid,
                 "ExistingUser",
-                BCrypt.Net.BCrypt.HashPassword("correctPassword"),
-                "Андрей",
-                new DateOnly(2002, 12, 12)
+                BCrypt.Net.BCrypt.HashPassword("correctPassword")
             );
 
             mockUserRepository
@@ -56,7 +71,7 @@ namespace Fitness_Tracker_Tests.Application.Features.Authorization
                 .ReturnsAsync(Result.Ok(user));
 
 
-            var handler = new AuthorizateUserCommandHandler(mockUserRepository.Object);
+            var handler = new AuthorizateUserCommandHandler(mockUserRepository.Object, _mapper);
             var result = await handler.Handle(command, CancellationToken.None);
 
 
@@ -75,7 +90,7 @@ namespace Fitness_Tracker_Tests.Application.Features.Authorization
                 .ReturnsAsync(Result.Fail<User>("User not found"));
 
 
-            var handler = new AuthorizateUserCommandHandler(mockUserRepository.Object);
+            var handler = new AuthorizateUserCommandHandler(mockUserRepository.Object, _mapper);
             var result = await handler.Handle(command, CancellationToken.None);
 
 

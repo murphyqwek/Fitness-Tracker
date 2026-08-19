@@ -1,5 +1,5 @@
-﻿using Fitness_Tracker_Application.DTO.User;
-using Fitness_Tracker_Application.Mappers;
+﻿using AutoMapper;
+using Fitness_Tracker_Application.DTO.User;
 using Fitness_Tracker_Application.Repository.User;
 using Fitness_Tracker_Domain.Entity;
 using FluentResults;
@@ -12,10 +12,12 @@ namespace Fitness_Tracker_Application.Features.Users.Registration
     public class RegisterUserCommandHandler : IRequestHandler<RegisterUserCommand, Result<UserDTO>>
     {
         private readonly IUserRepository _userRepository;
+        private readonly IMapper _mapper;
 
-        public RegisterUserCommandHandler(IUserRepository userRepository)
+        public RegisterUserCommandHandler(IUserRepository userRepository, IMapper mapper)
         {
             _userRepository = userRepository;
+            _mapper = mapper;
         }
 
         public async Task<Result<UserDTO>> Handle(RegisterUserCommand request, CancellationToken cancellationToken)
@@ -32,7 +34,7 @@ namespace Fitness_Tracker_Application.Features.Users.Registration
 
             await _userRepository.AddNewUserAsync(user, cancellationToken);
 
-            return Result.Ok(UserDTOMapper.MapToDTO(user));
+            return Result.Ok(_mapper.Map<UserDTO>(user));
         }
     }
 }
