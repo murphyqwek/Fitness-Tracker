@@ -15,6 +15,7 @@ namespace Fitness_Tracker_Infrastructure.Data
         public DbSet<ExerciseEntity> Exercises { get; set; } = null!;
         public DbSet<WorkoutSetEntity> WorkoutSets { get; set; } = null!;
         public DbSet<WorkoutEntity> Workouts { get; set; } = null!;
+        public DbSet<UserInformatonEntity> UserInformation { get; set; } = null!;
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -48,7 +49,7 @@ namespace Fitness_Tracker_Infrastructure.Data
 
             modelBuilder.Entity<WorkoutEntity>()
                 .HasOne(w => w.User)
-                .WithMany(u => u.Workouts)
+                .WithMany()
                 .HasForeignKey(w => w.UserId);
 
             modelBuilder.Entity<UserEntity>(e =>
@@ -56,6 +57,15 @@ namespace Fitness_Tracker_Infrastructure.Data
                 e.HasIndex(u => u.Login).IsUnique();
                 e.Property(u => u.Login).HasMaxLength(25);
                 e.Property(u => u.Password).IsRequired();
+            });
+
+            modelBuilder.Entity<UserInformatonEntity>(e =>
+            {
+                e.HasOne(e => e.User).WithOne(u => u.UserInformation)
+                                .HasForeignKey<UserInformatonEntity>(u => u.Id)
+                                .OnDelete(DeleteBehavior.Cascade);
+                e.Property(e => e.Weight).HasColumnType("decimal(18,2)");
+                e.Property(e => e.Name).HasMaxLength(100);
             });
         }
     }

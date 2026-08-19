@@ -27,7 +27,6 @@ namespace Fitness_Tracker_Application.Features.Users.JWT
             {
                 new Claim(JwtRegisteredClaimNames.Sub, request.User.Id.ToString()),
                 new Claim(JwtRegisteredClaimNames.UniqueName, request.User.Login),
-                new Claim(JwtRegisteredClaimNames.Name, request.User.Name),
             };
 
             var token = new JwtSecurityToken(

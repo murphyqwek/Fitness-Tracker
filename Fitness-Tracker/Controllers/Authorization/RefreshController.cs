@@ -6,7 +6,7 @@ using Fitness_Tracker_Application.Features.Users.Refresh;
 using Fitness_Tracker_Application.Features.Users;
 using Fitness_Tracker.Services;
 
-namespace Fitness_Tracker.Controllers
+namespace Fitness_Tracker.Controllers.Authorization
 {
     [Route("api/auth/refresh")]
     [ApiController]

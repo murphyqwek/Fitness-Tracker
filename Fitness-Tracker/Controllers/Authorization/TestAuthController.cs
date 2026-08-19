@@ -1,7 +1,7 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
-namespace Fitness_Tracker.Controllers
+namespace Fitness_Tracker.Controllers.Authorization
 {
     [Route("api/test-auth")]
     [ApiController]

@@ -6,19 +6,14 @@
         public string Login { get; private set; }
         public string Password { get; private set; }
 
-        public string Name { get; private set; }
-        public DateOnly? BirthDay { get; private set; }
-
-        public User(Guid id, string login, string password, string name, DateOnly? birthDay)
+        public User(Guid id, string login, string password)
         {
             Id = id;
             Login = login;
             Password = password;
-            Name = name;
-            BirthDay = birthDay;
         }
 
-        public User(string login, string password, string name, DateOnly? birthDay) : this(Guid.CreateVersion7(), login, password, name, birthDay)
+        public User(string login, string password) : this(Guid.CreateVersion7(), login, password)
         {
         }
     }

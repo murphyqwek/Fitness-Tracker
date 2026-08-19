@@ -9,8 +9,6 @@ namespace Fitness_Tracker_Application.Mappers
         {
             return new UserDTO(
                 user.Login,
-                user.Name,
-                user.BirthDay,
                 user.Id);
         }
     }

@@ -7,7 +7,7 @@ using MediatR;
 
 namespace Fitness_Tracker_Application.Features.Users.Registration
 {
-    public record RegisterUserCommand(string Login, string Password, string Name, DateOnly BirthDay) : IRequest<Result<UserDTO>>;
+    public record RegisterUserCommand(string Login, string Password) : IRequest<Result<UserDTO>>;
 
     public class RegisterUserCommandHandler : IRequestHandler<RegisterUserCommand, Result<UserDTO>>
     {
@@ -28,7 +28,7 @@ namespace Fitness_Tracker_Application.Features.Users.Registration
 
             string hashedPassword = BCrypt.Net.BCrypt.HashPassword(request.Password);
 
-            var user = new User(request.Login, hashedPassword, request.Name, request.BirthDay);
+            var user = new User(request.Login, hashedPassword);
 
             await _userRepository.AddNewUserAsync(user, cancellationToken);
 

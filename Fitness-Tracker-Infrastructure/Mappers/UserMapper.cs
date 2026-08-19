@@ -10,9 +10,7 @@ namespace Fitness_Tracker_Infrastructure.Mappers
             return new User(
                 id: userEntity.Id,
                 login: userEntity.Login,
-                password: userEntity.Password,
-                name: userEntity.Name,
-                birthDay: userEntity.BirthDay
+                password: userEntity.Password
             );
         }
 
@@ -23,8 +21,6 @@ namespace Fitness_Tracker_Infrastructure.Mappers
                 Id = user.Id,
                 Login = user.Login,
                 Password = user.Password,
-                Name = user.Name,
-                BirthDay = user.BirthDay
             };
         }
     }
