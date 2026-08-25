@@ -4,6 +4,7 @@ using Fitness_Tracker_Domain.Entity;
 using Fitness_Tracker_Infrastructure.Data;
 using FluentResults;
 using Microsoft.EntityFrameworkCore;
+using System.Xml.Linq;
 
 namespace Fitness_Tracker_Infrastructure.Repository.Exercises
 {
@@ -12,7 +13,7 @@ namespace Fitness_Tracker_Infrastructure.Repository.Exercises
         private readonly ApplicationDbContext _context;
         private readonly IMapper _mapper;
 
-        private const double SIMILARITTY_TRESHOLD = 0.3;
+        private const double SIMILARITTY_TRESHOLD = 0.7;
 
         public ExerciseRepository(ApplicationDbContext context, IMapper mapper) 
         { 
@@ -43,9 +44,9 @@ namespace Fitness_Tracker_Infrastructure.Repository.Exercises
 
             if(!string.IsNullOrEmpty(Name)) {
                 queary = queary.Where(ex =>
-                        EF.Functions.TrigramsWordSimilarity(ex.Name, Name) > SIMILARITTY_TRESHOLD
+                        EF.Functions.TrigramsWordSimilarityDistance(Name, ex.Name) < SIMILARITTY_TRESHOLD
                     )
-                    .OrderByDescending(ex => EF.Functions.TrigramsWordSimilarity(ex.Name, Name));
+                    .OrderBy(ex => EF.Functions.TrigramsWordSimilarityDistance(Name, ex.Name));
             }
 
             var result = await queary.ToListAsync(cancellationToken);
