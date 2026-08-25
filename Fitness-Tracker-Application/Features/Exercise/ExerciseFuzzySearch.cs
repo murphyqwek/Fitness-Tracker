@@ -13,19 +13,21 @@ namespace Fitness_Tracker_Application.Features.Exercise
             _names = _exercises.Select(x => x.Name).ToList();
         }
 
-        public IEnumerable<ExerciseSearchDTO> Search(string query, int limit = 10, int minScore = 60)
+        public IEnumerable<ExerciseSearchDTO> Search(string query, int limit = 10, int minScore = 30)
         {
             if (string.IsNullOrWhiteSpace(query))
                 return Enumerable.Empty<ExerciseSearchDTO>();
 
-            var matches = Process.ExtractTop(
-                query: query,
-                choices: _names,
-                limit: limit,
-                cutoff: minScore
-            );
-
-            return matches.Select(m => _exercises[m.Index]);
+            return _exercises
+                .Select(ex => new
+                {
+                    Item = ex,
+                    // WeightedRatio идеально работает и с подстроками, и с опечатками
+                    Score = Fuzz.WeightedRatio(query, ex.Name)
+                })
+                .Where(x => x.Score >= minScore)           // Отсекаем совпадения ниже порога
+                .OrderByDescending(x => x.Score)           // Сначала самые точные совпадения
+                .Select(x => x.Item);
         }
     }
 }
