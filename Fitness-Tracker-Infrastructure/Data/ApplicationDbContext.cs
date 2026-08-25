@@ -37,8 +37,8 @@ namespace Fitness_Tracker_Infrastructure.Data
 
             modelBuilder.Entity<ExerciseEntity>()
                 .HasIndex(ex => ex.Name)
-                .HasMethod("gin")
-                .HasOperators("gin_trgm_ops");
+                .HasMethod("gist")
+                .HasOperators("gist_trgm_ops");
 
             modelBuilder.Entity<MuscleEntity>()
                 .HasMany(m => m.Exercises)

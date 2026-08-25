@@ -41,12 +41,11 @@ namespace Fitness_Tracker_Infrastructure.Repository.Exercises
                 queary = queary.Where(ex => ex.Muscles.Any(exMuscle => MusclesId.Contains(exMuscle.MuscleId)));
             }
 
-            if(Name != null) {
+            if(!string.IsNullOrEmpty(Name)) {
                 queary = queary.Where(ex =>
-                        EF.Functions.ILike(ex.Name, $"%{Name}%") ||
-                        EF.Functions.TrigramsSimilarity(ex.Name, Name) > SIMILARITTY_TRESHOLD
+                        EF.Functions.TrigramsWordSimilarity(ex.Name, Name) > SIMILARITTY_TRESHOLD
                     )
-                    .OrderByDescending(ex => EF.Functions.TrigramsSimilarity(ex.Name, Name));
+                    .OrderByDescending(ex => EF.Functions.TrigramsWordSimilarity(ex.Name, Name));
             }
 
             var result = await queary.ToListAsync(cancellationToken);
