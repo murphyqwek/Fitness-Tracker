@@ -25,7 +25,7 @@ namespace Fitness_Tracker_Application.Features.Exercise
                 return Result.Fail($"Exercise with id {request.Id} does not exist");
             }
 
-            return Result.Ok(_mapper.Map<ExerciseSearchDTO>(result.Value));
+            return result;
         }
     }
 }

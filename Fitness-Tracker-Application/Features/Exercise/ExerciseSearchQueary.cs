@@ -21,7 +21,7 @@ namespace Fitness_Tracker_Application.Features.Exercise
         {
             var result = await _repo.GetExerciseAsync(request.Name, request.MusclesId, cancellationToken);
 
-            return _mapper.Map<IList<ExerciseSearchDTO>>(result);
+            return result;
         }
     }
 }
