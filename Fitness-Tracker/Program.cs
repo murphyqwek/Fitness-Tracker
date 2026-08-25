@@ -1,8 +1,10 @@
 using Fitness_Tracker_Application.Features.Users.JWT;
 using Fitness_Tracker_Application.Features.Users.Registration;
+using Fitness_Tracker_Application.Repository.Exercises;
 using Fitness_Tracker_Application.Repository.Refresh;
 using Fitness_Tracker_Application.Validation;
 using Fitness_Tracker_Infrastructure.Data;
+using Fitness_Tracker_Infrastructure.Repository.Exercises;
 using Fitness_Tracker_Infrastructure.Repository.Refresh;
 using Fitness_Tracker_Infrastructure.Repository.User;
 using FluentValidation;
@@ -92,6 +94,7 @@ namespace Fitness_Tracker_Api
             });
 
             builder.Services.AddScoped<IRefreshTokenRepository, RedisRefreshTokenRepository>();
+            builder.Services.AddScoped<IExerciseRepository, ExerciseRepository>();
 
             builder.Services.AddAuthorization();
 
