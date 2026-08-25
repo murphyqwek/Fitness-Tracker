@@ -21,6 +21,8 @@ namespace Fitness_Tracker_Infrastructure.Data
         {
             base.OnModelCreating(modelBuilder);
 
+            modelBuilder.HasPostgresExtension("pg_trgm");
+
             modelBuilder.Entity<ExerciseMuscleEntity>()
                 .HasKey(em => new { em.MuscleId, em.ExerciseId });
 
@@ -32,6 +34,11 @@ namespace Fitness_Tracker_Infrastructure.Data
                 .HasMany(e => e.Muscles)
                 .WithOne(m => m.Exercise)
                 .HasForeignKey(m => m.ExerciseId);
+
+            modelBuilder.Entity<ExerciseEntity>()
+                .HasIndex(ex => ex.Name)
+                .HasMethod("gin")
+                .HasOperators("gin_trgm_ops");
 
             modelBuilder.Entity<MuscleEntity>()
                 .HasMany(m => m.Exercises)
