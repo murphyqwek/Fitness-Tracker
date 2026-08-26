@@ -1,4 +1,6 @@
-﻿using FuzzySharp;
+﻿using FluentResults;
+using FuzzySharp;
+using MediatR;
 
 namespace Fitness_Tracker_Application.Features.Exercise
 {
@@ -9,44 +11,63 @@ namespace Fitness_Tracker_Application.Features.Exercise
 
         public void Initialize(IEnumerable<ExerciseSearchDTO> items)
         {
-            _exercises = items.ToList();
-            _splitedExercises = new List<string[]>(items.Count());
+            _exercises = items.OrderBy(ex => ex.Name).ToList();
+            _splitedExercises = new List<string[]>(_exercises.Count);
 
-            foreach (var exercise in items)
+            foreach (var exercise in _exercises)
             {
                 _splitedExercises.Add(exercise.Name.ToLower().Split(' ', StringSplitOptions.RemoveEmptyEntries));
             }
         }
 
-        public IList<ExerciseSearchDTO> Search(string query, int limit = 10, int minScore = 70)
+        public IList<ExerciseSearchDTO> Search(string? name, IList<int>? muscleIds, int limit = 10, int minScore = 70)
         {
-            if (string.IsNullOrWhiteSpace(query))
-                return new List<ExerciseSearchDTO>();
+            IEnumerable<ExerciseSearchDTO> selectedExercise = _exercises;
 
-            string[] splittedQuery = query.ToLower().Split(' ', StringSplitOptions.RemoveEmptyEntries);
+            bool hasName = !string.IsNullOrEmpty(name);
 
-            int i = 0;
+            if (hasName)
+            {
+                string[] splittedName = name.ToLower().Split(' ', StringSplitOptions.RemoveEmptyEntries);
 
-            var temp = _exercises
-                .Select(ex => new
-                {
-                    Item = ex,
-                    Score = GetTokenFuzzyScore(splittedQuery, _splitedExercises[i++])
-                })
-                .Where(ex => ex.Score >= minScore)
-                .OrderByDescending(x => x.Score);
+                selectedExercise = _exercises
+                    .Select((ex, index) => new
+                    {
+                        Item = ex,
+                        Score = GetTokenFuzzyScore(splittedName, _splitedExercises[index])
+                    })
+                    .Where(ex => ex.Score >= minScore)
+                    .OrderByDescending(x => x.Score)
+                    .Select(ex => ex.Item);
+            }
 
-            return temp
-                .Select(x => x.Item).ToList();
+            if(muscleIds != null && muscleIds.Count > 0) 
+            {
+                selectedExercise = selectedExercise.Where(ex => muscleIds.All(id => ex.Muscles.Any(muscle => muscle.Id == id)));
+            }
+
+            return selectedExercise.ToList();
         }
 
-        public static double GetTokenFuzzyScore(string[] queryWords, string[] targetWords, int wordCutoff = 70)
+        public Result<ExerciseSearchDTO> GetExerciseById(int id) 
         {
-            if (queryWords.Length == 0 || targetWords.Length == 0) return 0;
+            var exercise = _exercises.FirstOrDefault(x => x.Id == id);
+
+            if (exercise == null)
+            {
+                return Result.Fail($"Exercise with id {id} does not exist");
+            }
+
+            return Result.Ok(exercise);
+        }
+
+        public static double GetTokenFuzzyScore(string[] nameWords, string[] targetWords, int wordCutoff = 70)
+        {
+            if (nameWords.Length == 0 || targetWords.Length == 0) return 0;
 
             double totalScore = 0;
 
-            foreach (var qWord in queryWords)
+            foreach (var qWord in nameWords)
             {
                 int bestWordMatch = 0;
 
@@ -67,7 +88,7 @@ namespace Fitness_Tracker_Application.Features.Exercise
                 totalScore += bestWordMatch;
             }
 
-            return totalScore / queryWords.Length;
+            return totalScore / nameWords.Length;
         }
     }
 }
