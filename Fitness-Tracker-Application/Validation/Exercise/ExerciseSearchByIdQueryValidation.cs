@@ -3,9 +3,9 @@ using FluentValidation;
 
 namespace Fitness_Tracker_Application.Validation.Exercise
 {
-    public class ExerciseSearchByIdQuearyValidation : AbstractValidator<ExerciseSearchByIdCommand>
+    public class ExerciseSearchByIdQueryValidation : AbstractValidator<ExerciseSearchByIdCommand>
     {
-        public ExerciseSearchByIdQuearyValidation()
+        public ExerciseSearchByIdQueryValidation()
         {
             RuleFor(command => command.Id)
                 .GreaterThan(0);

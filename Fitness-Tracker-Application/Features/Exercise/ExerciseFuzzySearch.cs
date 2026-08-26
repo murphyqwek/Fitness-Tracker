@@ -1,6 +1,6 @@
-﻿using FluentResults;
+﻿using Fitness_Tracker_Application.Service.Pagination;
+using FluentResults;
 using FuzzySharp;
-using MediatR;
 
 namespace Fitness_Tracker_Application.Features.Exercise
 {
@@ -20,7 +20,7 @@ namespace Fitness_Tracker_Application.Features.Exercise
             }
         }
 
-        public IList<ExerciseSearchDTO> Search(string? name, IList<int>? muscleIds, int limit = 10, int minScore = 70)
+        private IEnumerable<ExerciseSearchDTO> Search(string? name, IList<int>? muscleIds, int minScore)
         {
             IEnumerable<ExerciseSearchDTO> selectedExercise = _exercises;
 
@@ -38,15 +38,26 @@ namespace Fitness_Tracker_Application.Features.Exercise
                     })
                     .Where(ex => ex.Score >= minScore)
                     .OrderByDescending(x => x.Score)
+                    .ThenBy(x => x.Item.Id)
                     .Select(ex => ex.Item);
             }
 
-            if(muscleIds != null && muscleIds.Count > 0) 
+            if (muscleIds != null && muscleIds.Count > 0)
             {
                 selectedExercise = selectedExercise.Where(ex => muscleIds.All(id => ex.Muscles.Any(muscle => muscle.Id == id)));
             }
 
-            return selectedExercise.ToList();
+            return selectedExercise;
+        }
+
+        public PaginationResponse<ExerciseSearchDTO> SearchByPage(string? name, IList<int>? muscleIds, int page, int size, int minScore = 60) 
+        {
+            var selectedExercise = Search(name, muscleIds, minScore).ToList();
+            int totalCount = selectedExercise.Count;
+
+            var exercisePaginated = selectedExercise.Skip((page - 1) * size).Take(size).ToList();
+
+            return new PaginationResponse<ExerciseSearchDTO>(page, size, totalCount, exercisePaginated);                  
         }
 
         public Result<ExerciseSearchDTO> GetExerciseById(int id) 
@@ -61,7 +72,7 @@ namespace Fitness_Tracker_Application.Features.Exercise
             return Result.Ok(exercise);
         }
 
-        public static double GetTokenFuzzyScore(string[] nameWords, string[] targetWords, int wordCutoff = 70)
+        public static double GetTokenFuzzyScore(string[] nameWords, string[] targetWords, int wordCutoff = 60)
         {
             if (nameWords.Length == 0 || targetWords.Length == 0) return 0;
 

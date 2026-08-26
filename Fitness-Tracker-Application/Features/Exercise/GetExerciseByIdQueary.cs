@@ -1,6 +1,4 @@
-﻿using AutoMapper;
-using Fitness_Tracker_Application.Repository.Exercises;
-using FluentResults;
+﻿using FluentResults;
 using MediatR;
 
 namespace Fitness_Tracker_Application.Features.Exercise

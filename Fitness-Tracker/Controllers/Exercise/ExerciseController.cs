@@ -1,4 +1,5 @@
 ﻿using Fitness_Tracker_Application.Features.Exercise;
+using Fitness_Tracker_Application.Service.Pagination;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -19,9 +20,12 @@ namespace Fitness_Tracker.Controllers.Exercise
 
         [HttpGet]
         [AllowAnonymous]
-        public async Task<IList<ExerciseSearchDTO>> Get([FromQuery] string? name, [FromQuery] List<int> muscleIds, CancellationToken cancellationToken)
+        public async Task<PaginationResponse<ExerciseSearchDTO>> Get([FromQuery] string? name, [FromQuery] List<int> muscleIds, int? page, int? size, CancellationToken cancellationToken)
         {
-            return await _mediator.Send(new ExerciseSearchCommand(name, muscleIds), cancellationToken);
+            page ??= 1;
+            size ??= 10;
+
+            return await _mediator.Send(new ExerciseSearchCommand(name, muscleIds) { Page = page.Value, Size = size.Value }, cancellationToken);
         }
 
         [HttpGet("{id}")]
