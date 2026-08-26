@@ -1,3 +1,4 @@
+using Fitness_Tracker_Application.Features.Exercise;
 using Fitness_Tracker_Application.Features.Users.JWT;
 using Fitness_Tracker_Application.Features.Users.Registration;
 using Fitness_Tracker_Application.Repository.Exercises;
@@ -17,7 +18,7 @@ namespace Fitness_Tracker_Api
 {
     public class Program
     {
-        public static void Main(string[] args)
+        public static async Task Main(string[] args)
         {
             var builder = WebApplication.CreateBuilder(args);
 
@@ -32,6 +33,8 @@ namespace Fitness_Tracker_Api
             builder.Services.AddAutoMapper(cfg => cfg.AddMaps(typeof(UserRepository).Assembly));
 
             builder.Services.AddValidatorsFromAssembly(typeof(RegisterUserCommand).Assembly);
+
+            builder.Services.AddSingleton<ExerciseFuzzySearch>();
 
             builder.Services.AddMediatR(cfg => 
                 {
@@ -133,6 +136,20 @@ namespace Fitness_Tracker_Api
 
 
             app.MapControllers();
+
+            using (var scope = app.Services.CreateScope())
+            {
+                var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+                var cache = scope.ServiceProvider.GetRequiredService<ExerciseFuzzySearch>();
+
+                var exercisesFromDb = await db.Exercises
+                    .AsNoTracking()
+                    .Select(e => new ExerciseSearchDTO(e.Id, e.Name, e.Description, e.Muscles.Select(exMuscle => new ExerciseMuscleDTO(exMuscle.MuscleId, exMuscle.Muscle.Name, exMuscle.PercentageOfUsage)).ToList()))
+                    .ToListAsync();
+
+                cache.Initialize(exercisesFromDb);
+                Console.WriteLine($"[CACHE] Загружено {exercisesFromDb.Count} упражнений в память.");
+            }
 
             app.Run();
         }
