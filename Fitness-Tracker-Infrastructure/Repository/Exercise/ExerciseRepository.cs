@@ -152,7 +152,12 @@ namespace Fitness_Tracker_Infrastructure.Repository.Exercises
                 var searchResult = await _searchCommands.SearchAsync(INDEX_NAME, query);
                 List<string> passedExercises = await SortExerciseByScore(searchResult, searchAll, SCORE_THRESHOLD);
                 total = searchAll ? (int)searchResult.TotalResults : passedExercises.Count;
-                FillFindedExercises(findedExercises, passedExercises, offset, size);
+                if(searchAll) {
+                    FillFindedExercises(findedExercises, passedExercises);
+                }
+                else {
+                    FillFindedExercises(findedExercises, passedExercises, offset, size);
+                }
             }
             catch (Exception)
             {
@@ -183,9 +188,19 @@ namespace Fitness_Tracker_Infrastructure.Repository.Exercises
             return result;
         }
 
-        private void FillFindedExercises(List<ExerciseSearchDTO> findedExercises, List<string> passedExercises, int offset, int size) 
+        private void FillFindedExercises(List<ExerciseSearchDTO> findedExercises, List<string> passedExercises)
         {
-            var pagedList = passedExercises.Skip(offset).Take(size);
+            FillFindedExercises(findedExercises, passedExercises, null, null);
+        }
+
+        private void FillFindedExercises(List<ExerciseSearchDTO> findedExercises, List<string> passedExercises, int? offset, int? size) 
+        {
+            IEnumerable<string> pagedList = passedExercises;
+
+            if (offset != null && size != null)
+            {
+                pagedList = passedExercises.Skip(offset.Value).Take(size.Value);
+            }
 
             foreach (var jsonString in pagedList)
             {
