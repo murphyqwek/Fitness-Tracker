@@ -2,15 +2,13 @@
 using Fitness_Tracker_Application.Features.Users.JWT;
 using Fitness_Tracker_Application.Features.Users.Refresh;
 using Fitness_Tracker_Application.Features.Users.Registration;
-using Fitness_Tracker_Domain.Entity;
-using FluentValidation;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Fitness_Tracker.Controllers.Authorization
 {
-    [Route("api/auth")]
+    [Route("api/v1/auth")]
     [ApiController]
     public class RegisterController : ControllerBase
     {

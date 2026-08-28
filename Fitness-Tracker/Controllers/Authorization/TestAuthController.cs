@@ -3,7 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace Fitness_Tracker.Controllers.Authorization
 {
-    [Route("api/test-auth")]
+    [Route("api/v1/test-auth")]
     [ApiController]
     public class TestAuthController : ControllerBase
     {

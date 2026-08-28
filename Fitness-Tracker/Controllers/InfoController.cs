@@ -2,7 +2,7 @@
 
 namespace Fitness_Tracker.Controllers
 {
-    [Route("api/info")]
+    [Route("api/v1/info")]
     [ApiController]
     public class InfoController : ControllerBase
     {
@@ -12,7 +12,7 @@ namespace Fitness_Tracker.Controllers
             var info = new
             {
                 Application = "Fitness Tracker",
-                Version = "0.0.2",
+                Version = "0.0.5",
             };
 
             return Ok(info);

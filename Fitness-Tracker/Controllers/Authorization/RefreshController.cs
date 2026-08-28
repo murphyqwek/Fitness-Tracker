@@ -8,7 +8,7 @@ using Fitness_Tracker.Services;
 
 namespace Fitness_Tracker.Controllers.Authorization
 {
-    [Route("api/auth/refresh")]
+    [Route("api/v1/auth/refresh")]
     [ApiController]
     public class RefreshController : ControllerBase
     {
