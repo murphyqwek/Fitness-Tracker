@@ -29,7 +29,7 @@ namespace Fitness_Tracker_Infrastructure.Repository.Exercises
             NumberHandling = JsonNumberHandling.WriteAsString | JsonNumberHandling.AllowReadingFromString
         };
 
-        private const double SCORE_THRESHOLD = 0.2;
+        private static readonly Regex _sanitizeRegex = new(@"[^\p{L}\p{N}\s]", RegexOptions.Compiled);
         private const string INDEX_NAME = "idx:exercise";
 
         private static bool _isIndexInitialized = false;
@@ -102,7 +102,7 @@ namespace Fitness_Tracker_Infrastructure.Repository.Exercises
 
             if (!string.IsNullOrWhiteSpace(name))
             {
-                string sanitizedText = Regex.Replace(name, @"[^\p{L}\p{N}\s]", "").Trim();
+                string sanitizedText = _sanitizeRegex.Replace(name, "").Trim();
 
                 if (!string.IsNullOrEmpty(sanitizedText))
                 {
@@ -133,31 +133,21 @@ namespace Fitness_Tracker_Infrastructure.Repository.Exercises
 
             int offset = (page - 1) * size;
 
-            Query query = new Query(queryString).SetLanguage("russian");
+            Query query = new Query(queryString).SetLanguage("russian").Limit(offset, size);
 
-            if(searchAll) 
+            if(!searchAll)
             {
-                query = query.Limit(offset, size);
-            }
-            else
-            {
-                query = query.SetWithScores().Limit(0, 50);
+                query = query.SetWithScores();
             }
 
-            var findedExercises = new List<ExerciseSearchDTO>(20);
+            var findedExercises = new List<ExerciseSearchDTO>(size);
             int total = 0;
 
             try
             {
                 var searchResult = await _searchCommands.SearchAsync(INDEX_NAME, query);
-                List<string> passedExercises = await SortExerciseByScore(searchResult, searchAll, SCORE_THRESHOLD);
-                total = searchAll ? (int)searchResult.TotalResults : passedExercises.Count;
-                if(searchAll) {
-                    FillFindedExercises(findedExercises, passedExercises);
-                }
-                else {
-                    FillFindedExercises(findedExercises, passedExercises, offset, size);
-                }
+                FillFindedExercises(searchResult, findedExercises);
+                total = (int)searchResult.TotalResults;
             }
             catch (Exception)
             {
@@ -168,45 +158,15 @@ namespace Fitness_Tracker_Infrastructure.Repository.Exercises
             return new PaginationResponse<ExerciseSearchDTO>(page, size, total, findedExercises);
         }
 
-        private async Task<List<string>> SortExerciseByScore(SearchResult searchResult, bool searchAll, double minScore) 
-        {   
-            List<string> result = new List<string>();
-
+        private void FillFindedExercises(SearchResult searchResult, List<ExerciseSearchDTO> findedExercises) 
+        {
             foreach (var document in searchResult.Documents)
             {
-                if (!searchAll && document.Score < minScore)
+                var prop = document.GetProperties().FirstOrDefault();
+
+                if (!prop.Value.IsNull)
                 {
-                    break;
-                }
-
-                var jsonProperty = document.GetProperties().FirstOrDefault();
-                var jsonString = jsonProperty.Value.ToString();
-
-                result.Add(jsonString);
-            }
-
-            return result;
-        }
-
-        private void FillFindedExercises(List<ExerciseSearchDTO> findedExercises, List<string> passedExercises)
-        {
-            FillFindedExercises(findedExercises, passedExercises, null, null);
-        }
-
-        private void FillFindedExercises(List<ExerciseSearchDTO> findedExercises, List<string> passedExercises, int? offset, int? size) 
-        {
-            IEnumerable<string> pagedList = passedExercises;
-
-            if (offset != null && size != null)
-            {
-                pagedList = passedExercises.Skip(offset.Value).Take(size.Value);
-            }
-
-            foreach (var jsonString in pagedList)
-            {
-                if (!string.IsNullOrEmpty(jsonString))
-                {
-                    var dto = JsonSerializer.Deserialize<ExerciseSearchDTO>(jsonString, _jsonSerializationOptions);
+                    var dto = JsonSerializer.Deserialize<ExerciseSearchDTO>((byte[])prop.Value!, _jsonSerializationOptions);
 
                     if (dto != null) findedExercises.Add(dto);
                 }
