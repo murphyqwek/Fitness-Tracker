@@ -32,6 +32,8 @@ namespace Fitness_Tracker_Api
             builder.Services.AddAutoMapper(cfg => cfg.AddMaps(typeof(RegisterUserCommand).Assembly));
             builder.Services.AddAutoMapper(cfg => cfg.AddMaps(typeof(UserRepository).Assembly));
 
+            builder.Services.AddMemoryCache();
+
             builder.Services.AddValidatorsFromAssembly(typeof(RegisterUserCommand).Assembly);
 
             builder.Services.AddSingleton<ExerciseFuzzySearch>();

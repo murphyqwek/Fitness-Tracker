@@ -6,11 +6,13 @@ using Fitness_Tracker_Application.Service.Pagination;
 using Fitness_Tracker_Infrastructure.Data;
 using FluentResults;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Caching.Memory;
 using NRedisStack;
 using NRedisStack.RedisStackCommands;
 using NRedisStack.Search;
 using NRedisStack.Search.Literals.Enums;
 using StackExchange.Redis;
+using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using System.Text.RegularExpressions;
@@ -23,6 +25,7 @@ namespace Fitness_Tracker_Infrastructure.Repository.Exercises
         private readonly IMapper _mapper;
         private readonly IDatabase _cache;
         private readonly ISearchCommandsAsync _searchCommands;
+        private readonly IMemoryCache _memoryCache;
         private static readonly JsonSerializerOptions _jsonSerializationOptions = new JsonSerializerOptions()
         { 
             PropertyNameCaseInsensitive = true,
@@ -32,16 +35,20 @@ namespace Fitness_Tracker_Infrastructure.Repository.Exercises
         private static readonly Regex _sanitizeRegex = new(@"[^\p{L}\p{N}\s]", RegexOptions.Compiled);
         private const string INDEX_NAME = "idx:exercise";
 
+        private readonly MemoryCacheEntryOptions cacheOptions = new MemoryCacheEntryOptions()
+            .SetAbsoluteExpiration(TimeSpan.FromSeconds(30))
+            .SetSize(1);
+
         private static bool _isIndexInitialized = false;
         private static readonly object _lock = new();
 
-        public ExerciseRepository(ApplicationDbContext context, IConnectionMultiplexer connection, IMapper mapper)
+        public ExerciseRepository(ApplicationDbContext context, IConnectionMultiplexer connection, IMapper mapper, IMemoryCache memoryCache)
         {
             _context = context;
             _cache = connection.GetDatabase();
             _searchCommands = _cache.FT();
             _mapper = mapper;
-
+            _memoryCache = memoryCache;
 
             if (!_isIndexInitialized)
             {
@@ -96,7 +103,33 @@ namespace Fitness_Tracker_Infrastructure.Repository.Exercises
             }
         }
 
+        private static string GenerateCacheKey(string? name, IList<int>? musclesId, int page, int size)
+        {
+            var cleanName = name?.Trim().ToLowerInvariant() ?? "empty";
+            var musclesPart = (musclesId != null && musclesId.Count > 0)
+                ? string.Join(",", musclesId.OrderBy(id => id))
+                : "all";
+
+            return $"search:ex:name={cleanName}:muscles={musclesPart}:p={page}:s={size}";
+        }
+
         public async Task<PaginationResponse<ExerciseSearchDTO>> GetExerciseAsync(string? name, IList<int>? musclesId, int page, int size, CancellationToken cancellationToken)
+        {
+            string cacheKey = GenerateCacheKey(name, musclesId, page, size);
+
+            if (_memoryCache.TryGetValue(cacheKey, out PaginationResponse<ExerciseSearchDTO>? cachedResponse)) 
+            {
+                return cachedResponse!;
+            }
+
+            var result = await SearchInRedisAsync(name, musclesId, page, size, cancellationToken);
+
+            _memoryCache.Set(cacheKey, result, cacheOptions);
+
+            return result;
+        }
+
+        public async Task<PaginationResponse<ExerciseSearchDTO>> SearchInRedisAsync(string? name, IList<int>? musclesId, int page, int size, CancellationToken cancellationToken) 
         {
             var queryFuzzy = new List<string>();
 
@@ -119,7 +152,7 @@ namespace Fitness_Tracker_Infrastructure.Repository.Exercises
                 }
             }
 
-            if (musclesId != null && musclesId.Count > 0) 
+            if (musclesId != null && musclesId.Count > 0)
             {
                 var distincIds = musclesId.Distinct().ToList();
                 var tags = string.Join("|", distincIds);
@@ -135,7 +168,7 @@ namespace Fitness_Tracker_Infrastructure.Repository.Exercises
 
             Query query = new Query(queryString).SetLanguage("russian").Limit(offset, size);
 
-            if(!searchAll)
+            if (!searchAll)
             {
                 query = query.SetWithScores();
             }
@@ -153,7 +186,6 @@ namespace Fitness_Tracker_Infrastructure.Repository.Exercises
             {
                 findedExercises.Clear();
             }
-            
 
             return new PaginationResponse<ExerciseSearchDTO>(page, size, total, findedExercises);
         }
