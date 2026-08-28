@@ -129,17 +129,29 @@ namespace Fitness_Tracker_Infrastructure.Repository.Exercises
 
             string queryString = queryFuzzy.Count > 0 ? string.Join(" ", queryFuzzy) : "*";
 
+            bool searchAll = queryString == "*";
+
             int offset = (page - 1) * size;
 
-            Query query = new Query(queryString).SetLanguage("russian").SetWithScores();
+            Query query = new Query(queryString).SetLanguage("russian");
+
+            if(searchAll) 
+            {
+                query = query.Limit(offset, size);
+            }
+            else
+            {
+                query = query.SetWithScores().Limit(0, 50);
+            }
 
             var findedExercises = new List<ExerciseSearchDTO>(20);
             int total = 0;
 
             try
             {
-                List<string> passedExercises = await SortExerciseByScore(query, SCORE_THRESHOLD);
-                total = passedExercises.Count;
+                var searchResult = await _searchCommands.SearchAsync(INDEX_NAME, query);
+                List<string> passedExercises = await SortExerciseByScore(searchResult, searchAll, SCORE_THRESHOLD);
+                total = searchAll ? (int)searchResult.TotalResults : passedExercises.Count;
                 FillFindedExercises(findedExercises, passedExercises, offset, size);
             }
             catch (Exception)
@@ -151,14 +163,13 @@ namespace Fitness_Tracker_Infrastructure.Repository.Exercises
             return new PaginationResponse<ExerciseSearchDTO>(page, size, total, findedExercises);
         }
 
-        private async Task<List<string>> SortExerciseByScore(Query query, double minScore) 
-        {
-            var searchResult = await _searchCommands.SearchAsync(INDEX_NAME, query);
+        private async Task<List<string>> SortExerciseByScore(SearchResult searchResult, bool searchAll, double minScore) 
+        {   
             List<string> result = new List<string>();
 
             foreach (var document in searchResult.Documents)
             {
-                if (query.QueryString != "*" && document.Score < minScore)
+                if (!searchAll && document.Score < minScore)
                 {
                     break;
                 }
