@@ -35,7 +35,7 @@ namespace Fitness_Tracker_Infrastructure.Repository.Exercises
         private static readonly Regex _sanitizeRegex = new(@"[^\p{L}\p{N}\s]", RegexOptions.Compiled);
         private const string INDEX_NAME = "idx:exercise";
 
-        private readonly MemoryCacheEntryOptions cacheOptions = new MemoryCacheEntryOptions()
+        private readonly MemoryCacheEntryOptions _cacheOptions = new MemoryCacheEntryOptions()
             .SetAbsoluteExpiration(TimeSpan.FromSeconds(30))
             .SetSize(1);
 
@@ -124,7 +124,7 @@ namespace Fitness_Tracker_Infrastructure.Repository.Exercises
 
             var result = await SearchInRedisAsync(name, musclesId, page, size, cancellationToken);
 
-            _memoryCache.Set(cacheKey, result, cacheOptions);
+            _memoryCache.Set(cacheKey, result, _cacheOptions);
 
             return result;
         }
@@ -207,16 +207,28 @@ namespace Fitness_Tracker_Infrastructure.Repository.Exercises
 
         public async Task<Result<ExerciseSearchDTO>> GetExerciseByIdAsync(int id, CancellationToken cancellationToken)
         {
+            string exerciseIdCacheKey = $"exercise:{id}";
+
+            if(_memoryCache.TryGetValue(exerciseIdCacheKey, out Result<ExerciseSearchDTO>? exerciseSearch)) 
+            {
+                return exerciseSearch!;
+            }
+            
             var cached = await _cache.JSON().GetAsync($"exercise:{id}");
 
             if (cached.IsNull)
             {
+                _memoryCache.Set(exerciseIdCacheKey, Result.Fail($"No exercise by id: {id}"), _cacheOptions);
                 return Result.Fail($"No exercise by id: {id}");
             }
 
             var exercise = JsonSerializer.Deserialize<ExerciseSearchDTO>(cached.ToString(), _jsonSerializationOptions);
 
-            return Result.Ok(exercise!);
+            var result = Result.Ok(exercise!);
+
+            _memoryCache.Set(exerciseIdCacheKey, result, _cacheOptions);
+
+            return result;
         }
     }
 }
