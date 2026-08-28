@@ -25,7 +25,7 @@
                 Secure = true,
                 SameSite = SameSiteMode.Strict,
                 HttpOnly = true,
-                Path = "/api/auth/refresh"
+                Path = "/api/v1/auth/refresh"
             });
         }
     }
