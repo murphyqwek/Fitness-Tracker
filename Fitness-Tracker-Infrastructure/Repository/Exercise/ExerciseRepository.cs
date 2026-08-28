@@ -113,11 +113,11 @@ namespace Fitness_Tracker_Infrastructure.Repository.Exercises
             return $"search:ex:name={cleanName}:muscles={musclesPart}:p={page}:s={size}";
         }
 
-        public async Task<PaginationResponse<ExerciseSearchDTO>> GetExerciseAsync(string? name, IList<int>? musclesId, int page, int size, CancellationToken cancellationToken)
+        public async Task<PaginationResponse<ExerciseSearchReducedDTO>> GetExerciseAsync(string? name, IList<int>? musclesId, int page, int size, CancellationToken cancellationToken)
         {
             string cacheKey = GenerateCacheKey(name, musclesId, page, size);
 
-            if (_memoryCache.TryGetValue(cacheKey, out PaginationResponse<ExerciseSearchDTO>? cachedResponse)) 
+            if (_memoryCache.TryGetValue(cacheKey, out PaginationResponse<ExerciseSearchReducedDTO>? cachedResponse)) 
             {
                 return cachedResponse!;
             }
@@ -129,7 +129,7 @@ namespace Fitness_Tracker_Infrastructure.Repository.Exercises
             return result;
         }
 
-        public async Task<PaginationResponse<ExerciseSearchDTO>> SearchInRedisAsync(string? name, IList<int>? musclesId, int page, int size, CancellationToken cancellationToken) 
+        public async Task<PaginationResponse<ExerciseSearchReducedDTO>> SearchInRedisAsync(string? name, IList<int>? musclesId, int page, int size, CancellationToken cancellationToken) 
         {
             var queryFuzzy = new List<string>();
 
@@ -166,14 +166,20 @@ namespace Fitness_Tracker_Infrastructure.Repository.Exercises
 
             int offset = (page - 1) * size;
 
-            Query query = new Query(queryString).SetLanguage("russian").Limit(offset, size);
+            Query query = new Query(queryString).SetLanguage("russian")
+                                                .Limit(offset, size)
+                                                .ReturnFields(
+                                                    new FieldName("$.Id", "id"),
+                                                    new FieldName("$.Name", "name"),
+                                                    new FieldName("$.Muscles", "muscles")
+                                                );
 
             if (!searchAll)
             {
                 query = query.SetWithScores();
             }
 
-            var findedExercises = new List<ExerciseSearchDTO>(size);
+            var findedExercises = new List<ExerciseSearchReducedDTO>(size);
             int total = 0;
 
             try
@@ -187,21 +193,36 @@ namespace Fitness_Tracker_Infrastructure.Repository.Exercises
                 findedExercises.Clear();
             }
 
-            return new PaginationResponse<ExerciseSearchDTO>(page, size, total, findedExercises);
+            return new PaginationResponse<ExerciseSearchReducedDTO>(page, size, total, findedExercises);
         }
 
-        private void FillFindedExercises(SearchResult searchResult, List<ExerciseSearchDTO> findedExercises) 
+        private void FillFindedExercises(SearchResult searchResult, List<ExerciseSearchReducedDTO> findedExercises)
         {
             foreach (var document in searchResult.Documents)
             {
-                var prop = document.GetProperties().FirstOrDefault();
+                var idVal = document["id"];
+                var nameVal = document["name"];
+                var musclesVal = document["muscles"];
 
-                if (!prop.Value.IsNull)
+                if (idVal.IsNull || nameVal.IsNull)
+                    continue;
+
+                int id = int.Parse(idVal.ToString());
+                string name = nameVal.ToString();
+
+                List<ExerciseMuscleDTO>? muscles = null;
+                if (!musclesVal.IsNull)
                 {
-                    var dto = JsonSerializer.Deserialize<ExerciseSearchDTO>((byte[])prop.Value!, _jsonSerializationOptions);
-
-                    if (dto != null) findedExercises.Add(dto);
+                    byte[] muscleBytes = (byte[])musclesVal!;
+                    muscles = JsonSerializer.Deserialize<List<ExerciseMuscleDTO>>(muscleBytes, _jsonSerializationOptions);
                 }
+
+                findedExercises.Add(new ExerciseSearchReducedDTO
+                (
+                    id,
+                    name,
+                    muscles ?? new List<ExerciseMuscleDTO>()
+                ));
             }
         }
 

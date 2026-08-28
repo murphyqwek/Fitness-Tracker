@@ -21,7 +21,7 @@ namespace Fitness_Tracker.Controllers.Exercise
 
         [HttpGet]
         [AllowAnonymous]
-        public async Task<PaginationResponse<ExerciseSearchDTO>> Get([FromQuery] string? name, [FromQuery] List<int> muscleIds, int? page, int? size, CancellationToken cancellationToken)
+        public async Task<PaginationResponse<ExerciseSearchReducedDTO>> Get([FromQuery] string? name, [FromQuery] List<int> muscleIds, int? page, int? size, CancellationToken cancellationToken)
         {
             page ??= 1;
             size ??= 10;
