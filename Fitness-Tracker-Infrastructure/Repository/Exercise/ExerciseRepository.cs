@@ -222,7 +222,7 @@ namespace Fitness_Tracker_Infrastructure.Repository.Exercises
                 return Result.Fail($"No exercise by id: {id}");
             }
 
-            var exercise = JsonSerializer.Deserialize<ExerciseSearchDTO>(cached.ToString(), _jsonSerializationOptions);
+            var exercise = JsonSerializer.Deserialize<ExerciseSearchDTO>((byte[])cached!, _jsonSerializationOptions);
 
             var result = Result.Ok(exercise!);
 
