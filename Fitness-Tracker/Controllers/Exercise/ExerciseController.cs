@@ -43,7 +43,7 @@ namespace Fitness_Tracker.Controllers.Exercise
             return Ok(result.Value);
         }
 
-        [HttpPost("/fill")]
+        [HttpPost("fill")]
         [AllowAnonymous]
         public async Task<IActionResult> FillCache(CancellationToken cancellationToken)
         {
