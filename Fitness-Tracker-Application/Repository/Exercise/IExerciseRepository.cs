@@ -1,5 +1,5 @@
 ﻿using Fitness_Tracker_Application.Features.Exercise;
-using Fitness_Tracker_Domain.Entity;
+using Fitness_Tracker_Application.Service.Pagination;
 using FluentResults;
 
 namespace Fitness_Tracker_Application.Repository.Exercises
@@ -8,8 +8,8 @@ namespace Fitness_Tracker_Application.Repository.Exercises
     {
         public Task<Result<ExerciseSearchDTO>> GetExerciseByIdAsync(int id, CancellationToken cancellationToken);
 
-        public Task<IList<ExerciseSearchDTO>> GetExerciseAsync(string? Name, IList<int>? MuscleId, CancellationToken cancellationToken);
+        public Task<PaginationResponse<ExerciseSearchDTO>> GetExerciseAsync(string? Name, IList<int>? MuscleId, int page, int size, CancellationToken cancellationToken);
 
-        public Task<IList<ExerciseSearchDTO>> GetAllExerciseAsync(CancellationToken cancellationToken);
+        public Task FillCacheFromDb(CancellationToken cancellationToken);
     }
 }

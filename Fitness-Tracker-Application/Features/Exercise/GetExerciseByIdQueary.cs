@@ -1,4 +1,5 @@
-﻿using FluentResults;
+﻿using Fitness_Tracker_Application.Repository.Exercises;
+using FluentResults;
 using MediatR;
 
 namespace Fitness_Tracker_Application.Features.Exercise
@@ -7,15 +8,17 @@ namespace Fitness_Tracker_Application.Features.Exercise
     public class GetExerciseByIdQueary : IRequestHandler<ExerciseSearchByIdCommand, Result<ExerciseSearchDTO>>
     {
         private readonly ExerciseFuzzySearch _search;
+        private readonly IExerciseRepository _exerciseRepository;
 
-        public GetExerciseByIdQueary(ExerciseFuzzySearch search) 
+        public GetExerciseByIdQueary(ExerciseFuzzySearch search, IExerciseRepository exerciseRepository) 
         {
             _search = search;
+            _exerciseRepository = exerciseRepository;
         }
 
         public async Task<Result<ExerciseSearchDTO>> Handle(ExerciseSearchByIdCommand request, CancellationToken cancellationToken)
         {
-            return _search.GetExerciseById(request.Id);
+            return await _exerciseRepository.GetExerciseByIdAsync(request.Id, cancellationToken);
         }
     }
 }

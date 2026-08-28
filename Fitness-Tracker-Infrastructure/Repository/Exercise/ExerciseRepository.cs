@@ -2,9 +2,18 @@
 using AutoMapper.QueryableExtensions;
 using Fitness_Tracker_Application.Features.Exercise;
 using Fitness_Tracker_Application.Repository.Exercises;
+using Fitness_Tracker_Application.Service.Pagination;
 using Fitness_Tracker_Infrastructure.Data;
 using FluentResults;
 using Microsoft.EntityFrameworkCore;
+using NRedisStack;
+using NRedisStack.RedisStackCommands;
+using NRedisStack.Search;
+using NRedisStack.Search.Literals.Enums;
+using StackExchange.Redis;
+using System.Text.Json;
+using System.Text.Json.Serialization;
+using System.Text.RegularExpressions;
 
 namespace Fitness_Tracker_Infrastructure.Repository.Exercises
 {
@@ -12,56 +21,184 @@ namespace Fitness_Tracker_Infrastructure.Repository.Exercises
     {
         private readonly ApplicationDbContext _context;
         private readonly IMapper _mapper;
+        private readonly IDatabase _cache;
+        private readonly ISearchCommandsAsync _searchCommands;
+        private static readonly JsonSerializerOptions _jsonSerializationOptions = new JsonSerializerOptions()
+        { 
+            PropertyNameCaseInsensitive = true,
+            NumberHandling = JsonNumberHandling.WriteAsString | JsonNumberHandling.AllowReadingFromString
+        };
 
-        private const double SIMILARITTY_TRESHOLD = 0.7;
+        private const double SCORE_THRESHOLD = 0.2;
+        private const string INDEX_NAME = "idx:exercise";
 
-        public ExerciseRepository(ApplicationDbContext context, IMapper mapper)
+        private static bool _isIndexInitialized = false;
+        private static readonly object _lock = new();
+
+        public ExerciseRepository(ApplicationDbContext context, IConnectionMultiplexer connection, IMapper mapper)
         {
             _context = context;
+            _cache = connection.GetDatabase();
+            _searchCommands = _cache.FT();
             _mapper = mapper;
+
+
+            if (!_isIndexInitialized)
+            {
+                lock (_lock)
+                {
+                    if (!_isIndexInitialized)
+                    {
+                        CreateIndexIfNotExists();
+                        _isIndexInitialized = true;
+                    }
+                }
+            }
         }
 
-        public async Task<IList<ExerciseSearchDTO>> GetAllExerciseAsync(CancellationToken cancellationToken)
+        private void CreateIndexIfNotExists()
         {
-            var query = _context.Exercises.ProjectTo<ExerciseSearchDTO>(_mapper.ConfigurationProvider)
-                            .AsNoTracking();
+            try
+            {
+                _cache.FT().Info(INDEX_NAME);
+            }
+            catch
+            {
+                var schema = new Schema()
+                    .AddTextField(new FieldName("$.Name", "name"), 5.0)
+                    .AddTagField(new FieldName("$.Muscles[*].Id", "muscle_ids"));
 
-            return await query.ToListAsync();
+                _cache.FT().Create(
+                    INDEX_NAME,
+                    new FTCreateParams()
+                        .On(IndexDataType.JSON)
+                        .Prefix("exercise:")
+                        .Language("russian"),
+                    schema
+                );
+
+            }
         }
 
-        public async Task<IList<ExerciseSearchDTO>> GetExerciseAsync(string? Name, IList<int>? MusclesId, CancellationToken cancellationToken)
+        public async Task FillCacheFromDb(CancellationToken cancellationToken) 
         {
-            var query = _context.Exercises.AsNoTracking();
+            var exercises = await _context.Exercises.ProjectTo<ExerciseSearchDTO>(_mapper.ConfigurationProvider).ToListAsync(cancellationToken);
 
-            if (MusclesId != null && MusclesId.Any())
+            foreach (var chunk in exercises.Chunk(50))
             {
-                query = query.Where(ex => ex.Muscles.Any(exMuscle => MusclesId.Contains(exMuscle.MuscleId)));
+                var tasks = chunk.Select(ex =>
+                {
+                    string json = JsonSerializer.Serialize(ex, _jsonSerializationOptions);
+                    return _cache.JSON().SetAsync($"exercise:{ex.Id}", "$", json);
+                });
+
+                await Task.WhenAll(tasks);
+            }
+        }
+
+        public async Task<PaginationResponse<ExerciseSearchDTO>> GetExerciseAsync(string? name, IList<int>? musclesId, int page, int size, CancellationToken cancellationToken)
+        {
+            var queryFuzzy = new List<string>();
+
+            if (!string.IsNullOrWhiteSpace(name))
+            {
+                string sanitizedText = Regex.Replace(name, @"[^\p{L}\p{N}\s]", "").Trim();
+
+                if (!string.IsNullOrEmpty(sanitizedText))
+                {
+                    var words = sanitizedText.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+
+                    var safeWords = words.Select(word =>
+                    {
+                        if (word.Length <= 3) return $"{word}*";
+                        return $"({word}*|%{word}%)";
+                    });
+
+
+                    queryFuzzy.Add($"@name:({string.Join(" ", safeWords)})");
+                }
             }
 
-            if (!string.IsNullOrEmpty(Name))
+            if (musclesId != null && musclesId.Count > 0) 
             {
-                query = query.Where(ex => EF.Functions.TrigramsWordSimilarityDistance(Name, ex.Name) < SIMILARITTY_TRESHOLD)
-                             .OrderBy(ex => EF.Functions.TrigramsWordSimilarityDistance(Name, ex.Name));
+                var distincIds = musclesId.Distinct().ToList();
+                var tags = string.Join("|", distincIds);
+
+                queryFuzzy.Add($"@muscle_ids:{{{tags}}}");
             }
 
-            return await query
-                .ProjectTo<ExerciseSearchDTO>(_mapper.ConfigurationProvider)
-                .ToListAsync(cancellationToken);
+            string queryString = queryFuzzy.Count > 0 ? string.Join(" ", queryFuzzy) : "*";
+
+            int offset = (page - 1) * size;
+
+            Query query = new Query(queryString).SetLanguage("russian").SetWithScores();
+
+            var findedExercises = new List<ExerciseSearchDTO>(20);
+            int total = 0;
+
+            try
+            {
+                List<string> passedExercises = await SortExerciseByScore(query, SCORE_THRESHOLD);
+                total = passedExercises.Count;
+                FillFindedExercises(findedExercises, passedExercises, offset, size);
+            }
+            catch (Exception)
+            {
+                findedExercises.Clear();
+            }
+            
+
+            return new PaginationResponse<ExerciseSearchDTO>(page, size, total, findedExercises);
+        }
+
+        private async Task<List<string>> SortExerciseByScore(Query query, double minScore) 
+        {
+            var searchResult = await _searchCommands.SearchAsync(INDEX_NAME, query);
+            List<string> result = new List<string>();
+
+            foreach (var document in searchResult.Documents)
+            {
+                if (query.QueryString != "*" && document.Score < minScore)
+                {
+                    break;
+                }
+
+                var jsonProperty = document.GetProperties().FirstOrDefault();
+                var jsonString = jsonProperty.Value.ToString();
+
+                result.Add(jsonString);
+            }
+
+            return result;
+        }
+
+        private void FillFindedExercises(List<ExerciseSearchDTO> findedExercises, List<string> passedExercises, int offset, int size) 
+        {
+            var pagedList = passedExercises.Skip(offset).Take(size);
+
+            foreach (var jsonString in pagedList)
+            {
+                if (!string.IsNullOrEmpty(jsonString))
+                {
+                    var dto = JsonSerializer.Deserialize<ExerciseSearchDTO>(jsonString, _jsonSerializationOptions);
+
+                    if (dto != null) findedExercises.Add(dto);
+                }
+            }
         }
 
         public async Task<Result<ExerciseSearchDTO>> GetExerciseByIdAsync(int id, CancellationToken cancellationToken)
         {
-            var result = await _context.Exercises
-                        .Where(ex => ex.Id == id)
-                        .ProjectTo<ExerciseSearchDTO>(_mapper.ConfigurationProvider)
-                        .FirstOrDefaultAsync(cancellationToken);
+            var cached = await _cache.JSON().GetAsync($"exercise:{id}");
 
-            if (result == null)
+            if (cached.IsNull)
             {
                 return Result.Fail($"No exercise by id: {id}");
             }
 
-            return Result.Ok(result);
+            var exercise = JsonSerializer.Deserialize<ExerciseSearchDTO>(cached.ToString(), _jsonSerializationOptions);
+
+            return Result.Ok(exercise!);
         }
     }
 }
