@@ -7,6 +7,7 @@ using FluentResults;
 using Microsoft.EntityFrameworkCore;
 using StackExchange.Redis;
 using System.Globalization;
+using System.Xml.Linq;
 
 namespace Fitness_Tracker_Infrastructure.Repository.User
 {
@@ -64,34 +65,29 @@ namespace Fitness_Tracker_Infrastructure.Repository.User
         }
 
         private List<HashEntry> UserInfoDTOtoHashEntries(UserInformationDTO userInfoDTO) {
-            List<HashEntry> userHashEntry = new List<HashEntry>() { new HashEntry(nameof(userInfoDTO.login), userInfoDTO.login) };
+            List<HashEntry> userHashEntries = new List<HashEntry>() { new HashEntry(nameof(userInfoDTO.login), userInfoDTO.login) };
 
-            FillHashEntries(userHashEntry, userInfoDTO.name, userInfoDTO.birthDay, userInfoDTO.height, userInfoDTO.weight);
-
-            return userHashEntry;
-        }
-
-        private void FillHashEntries(List<HashEntry> userHashEntries, string? name, DateOnly? birthDay, int? height, decimal? weight) 
-        {
-            if (name != null)
+            if (userInfoDTO.name != null)
             {
-                userHashEntries.Add(new HashEntry(nameof(UserInformationDTO.name), name));
+                userHashEntries.Add(new HashEntry(nameof(UserInformationDTO.name), userInfoDTO.name));
             }
 
-            if (birthDay.HasValue)
+            if (userInfoDTO.birthDay.HasValue)
             {
-                userHashEntries.Add(new HashEntry(nameof(UserInformationDTO.birthDay), birthDay.Value.ToString("O")));
+                userHashEntries.Add(new HashEntry(nameof(UserInformationDTO.birthDay), userInfoDTO.birthDay.Value.ToString("O")));
             }
 
-            if (height.HasValue)
+            if (userInfoDTO.height.HasValue)
             {
-                userHashEntries.Add(new HashEntry(nameof(UserInformationDTO.height), height.Value));
+                userHashEntries.Add(new HashEntry(nameof(UserInformationDTO.height), userInfoDTO.height.Value));
             }
 
-            if (weight.HasValue)
+            if (userInfoDTO.weight.HasValue)
             {
-                userHashEntries.Add(new HashEntry(nameof(UserInformationDTO.weight), weight.Value.ToString(CultureInfo.InvariantCulture)));
+                userHashEntries.Add(new HashEntry(nameof(UserInformationDTO.weight), userInfoDTO.weight.Value.ToString(CultureInfo.InvariantCulture)));
             }
+
+            return userHashEntries;
         }
 
         private async Task<(CacheState State, UserInformationDTO? Data)> ReadFromRedis(string key) 
@@ -129,36 +125,38 @@ namespace Fitness_Tracker_Infrastructure.Repository.User
                 return Result.Fail($"No user with id: {id}");
             }
 
-            if(userUpdateDTO.name != null) 
-            {
-                user.Name = userUpdateDTO.name;
-            }
-
-            if (userUpdateDTO.birthDay != null)
-            {
-                user.BirthDay = userUpdateDTO.birthDay;
-            }
-
-            if (userUpdateDTO.height != null)
-            {
-                user.Height = userUpdateDTO.height;
-            }
-
-            if (userUpdateDTO.weight != null)
-            {
-                user.Weight = userUpdateDTO.weight;
-            }
-
             var entries = new List<HashEntry>();
 
-            FillHashEntries(entries, userUpdateDTO.name, userUpdateDTO.birthDay, userUpdateDTO.height, userUpdateDTO.weight);
+            if (userUpdateDTO.name != null && user.Name != userUpdateDTO.name)
+            {
+                user.Name = userUpdateDTO.name;
+                entries.Add(new HashEntry(nameof(UserInformationDTO.name), userUpdateDTO.name));
+            }
 
-            if(entries.Count == 0) 
+            if (userUpdateDTO.birthDay.HasValue && user.BirthDay != userUpdateDTO.birthDay)
+            {
+                user.BirthDay = userUpdateDTO.birthDay;
+                entries.Add(new HashEntry(nameof(UserInformationDTO.birthDay), userUpdateDTO.birthDay.Value.ToString("O")));
+            }
+
+            if (userUpdateDTO.height.HasValue && user.Height != userUpdateDTO.height)
+            {
+                user.Height = userUpdateDTO.height;
+                entries.Add(new HashEntry(nameof(UserInformationDTO.height), userUpdateDTO.height.Value));
+            }
+
+            if (userUpdateDTO.weight.HasValue && user.Weight != userUpdateDTO.weight)
+            {
+                user.Weight = userUpdateDTO.weight;
+                entries.Add(new HashEntry(nameof(UserInformationDTO.weight), userUpdateDTO.weight.Value.ToString(CultureInfo.InvariantCulture)));
+            }
+
+            if (entries.Count == 0)
             {
                 return Result.Ok();
             }
 
-            await _context.SaveChangesAsync();
+            await _context.SaveChangesAsync(cancellationToken);
 
             string userKey = $"user:{id}";
             if (await _cache.KeyExistsAsync(userKey))
