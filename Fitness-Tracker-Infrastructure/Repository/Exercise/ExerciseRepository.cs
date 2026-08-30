@@ -251,5 +251,22 @@ namespace Fitness_Tracker_Infrastructure.Repository.Exercises
 
             return result;
         }
+
+        public async Task<bool> IsExerciseExist(int id, CancellationToken cancellationToken)
+        {
+            string memCacheKey = $"ex:exists:{id}";
+
+            if (_memoryCache.TryGetValue(memCacheKey, out bool exists))
+            {
+                return exists;
+            }
+
+            string redisKey = $"exercise:{id}";
+            exists = await _cache.KeyExistsAsync(redisKey);
+
+            _memoryCache.Set(memCacheKey, exists, _cacheOptions);
+
+            return exists;
+        }
     }
 }

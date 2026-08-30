@@ -11,5 +11,7 @@ namespace Fitness_Tracker_Application.Repository.Exercises
         public Task<PaginationResponse<ExerciseSearchReducedDTO>> GetExerciseAsync(string? Name, IList<int>? MuscleId, int page, int size, CancellationToken cancellationToken);
 
         public Task FillCacheFromDb(CancellationToken cancellationToken);
+
+        public Task<bool> IsExerciseExist(int id, CancellationToken cancellationToken);
     }
 }

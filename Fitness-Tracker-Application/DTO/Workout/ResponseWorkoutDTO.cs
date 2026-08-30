@@ -1,4 +1,4 @@
-﻿namespace Fitness_Tracker_Application.Features.Workout
+﻿namespace Fitness_Tracker_Application.DTO.Workout
 {
     public record class ResponseWorkoutDTO(Guid Id, string Name, string Description, DateTime Date, IList<ReponseWorkoutSetDTO> workoutSets);
 

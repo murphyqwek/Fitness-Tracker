@@ -1,6 +1,7 @@
 ﻿using AutoMapper;
 using AutoMapper.QueryableExtensions;
-using Fitness_Tracker_Application.Features.Workout;
+using Fitness_Tracker_Application.DTO.Workout;
+using Fitness_Tracker_Application.Repository.Workout;
 using Fitness_Tracker_Infrastructure.Data;
 using Fitness_Tracker_Infrastructure.Model;
 using FluentResults;
@@ -32,7 +33,7 @@ namespace Fitness_Tracker_Infrastructure.Repository.Workout
             return $"workout:{userId}:{workoutId}";
         }
 
-        public async Task<Result<Guid>> CreateNewWorkout(Guid userId, CreateWorkoutDTO createWorkoutDTO)
+        public async Task<Result<Guid>> CreateNewWorkout(Guid userId, CreateWorkoutDTO createWorkoutDTO, CancellationToken cancellationToken)
         {
             var workoutEntity = _mapper.Map<WorkoutEntity>(createWorkoutDTO);
 
@@ -40,8 +41,8 @@ namespace Fitness_Tracker_Infrastructure.Repository.Workout
 
             try
             {
-                await _context.Workouts.AddAsync(workoutEntity);
-                await _context.SaveChangesAsync();
+                await _context.Workouts.AddAsync(workoutEntity, cancellationToken);
+                await _context.SaveChangesAsync(cancellationToken);
             }
             catch (Exception)
             {
@@ -51,7 +52,7 @@ namespace Fitness_Tracker_Infrastructure.Repository.Workout
             return Result.Ok(workoutEntity.Id);
         }
 
-        public async Task<Result<ResponseWorkoutDTO>> GetWorkoutById(Guid userId, Guid workoutId)
+        public async Task<Result<ResponseWorkoutDTO>> GetWorkoutById(Guid userId, Guid workoutId, CancellationToken cancellationToken)
         {
             string cacheKey = GetWorkoutKey(userId, workoutId);
 
@@ -72,7 +73,7 @@ namespace Fitness_Tracker_Infrastructure.Repository.Workout
             var workout = await _context.Workouts
                                         .Where(workout => workout.Id == workoutId && workout.UserId == userId)
                                         .ProjectTo<ResponseWorkoutDTO>(_mapper.ConfigurationProvider)
-                                        .FirstOrDefaultAsync();
+                                        .FirstOrDefaultAsync(cancellationToken);
             
             if(workout == null) 
             {

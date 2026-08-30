@@ -1,5 +1,5 @@
 ﻿using AutoMapper;
-using Fitness_Tracker_Application.Features.Workout;
+using Fitness_Tracker_Application.DTO.Workout;
 using Fitness_Tracker_Infrastructure.Model;
 
 namespace Fitness_Tracker_Infrastructure.Mapping

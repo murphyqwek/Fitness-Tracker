@@ -4,11 +4,13 @@ using Fitness_Tracker_Application.Features.Users.Registration;
 using Fitness_Tracker_Application.Repository.Exercises;
 using Fitness_Tracker_Application.Repository.Refresh;
 using Fitness_Tracker_Application.Repository.User;
+using Fitness_Tracker_Application.Repository.Workout;
 using Fitness_Tracker_Application.Validation;
 using Fitness_Tracker_Infrastructure.Data;
 using Fitness_Tracker_Infrastructure.Repository.Exercises;
 using Fitness_Tracker_Infrastructure.Repository.Refresh;
 using Fitness_Tracker_Infrastructure.Repository.User;
+using Fitness_Tracker_Infrastructure.Repository.Workout;
 using FluentValidation;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
@@ -102,6 +104,8 @@ namespace Fitness_Tracker_Api
             builder.Services.AddScoped<IRefreshTokenRepository, RedisRefreshTokenRepository>();
             builder.Services.AddScoped<IExerciseRepository, ExerciseRepository>();
             builder.Services.AddScoped<IUserInformationRepository, UserInfoRepository>();
+            builder.Services.AddScoped<IWorkoutIdempotencyKeyRepository, RedisWorkoutIdempotencyRepository>();
+            builder.Services.AddScoped<IWorkoutRepository, WorkoutRepository>();
 
             builder.Services.AddAuthorization();
 

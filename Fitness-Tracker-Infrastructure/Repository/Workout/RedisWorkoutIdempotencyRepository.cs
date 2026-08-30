@@ -1,4 +1,4 @@
-﻿using Fitness_Tracker_Application.Features.Workout;
+﻿using Fitness_Tracker_Application.Repository.Workout;
 using StackExchange.Redis;
 
 namespace Fitness_Tracker_Infrastructure.Repository.Workout
@@ -18,7 +18,7 @@ namespace Fitness_Tracker_Infrastructure.Repository.Workout
             return $"workout_idempotency:{userId}:{idempotencyKey}";
         }
 
-        public async Task<(IdempotencyStatus Status, string? Result)> LockWorkout(Guid userId, Guid idempotencyKey)
+        public async Task<(IdempotencyStatus Status, Guid? Result)> LockWorkout(Guid userId, Guid idempotencyKey)
         {
             string key = GetKey(userId, idempotencyKey);
             for (int i = 0; i < MAX_RETRIES; i++)
@@ -34,7 +34,7 @@ namespace Fitness_Tracker_Infrastructure.Repository.Workout
             return (IdempotencyStatus.UNKNOW, null);
         }
 
-        private async Task<(IdempotencyStatus Status, string? Result)> TryLock(string key) 
+        private async Task<(IdempotencyStatus Status, Guid? Result)> TryLock(string key) 
         {
             bool setResult = await _cache.StringSetAsync(key, "RUNNING", TimeSpan.FromHours(5), When.NotExists);
 
@@ -55,7 +55,7 @@ namespace Fitness_Tracker_Infrastructure.Repository.Workout
                 return (IdempotencyStatus.RUNNING, null); 
             }
 
-            return (IdempotencyStatus.FINISHED, status);
+            return (IdempotencyStatus.FINISHED, new Guid(status));
         }
 
         public async Task UpdateWorkoutIdempotencyStatus(Guid userId, Guid idempotencyKey, Guid workoutId)

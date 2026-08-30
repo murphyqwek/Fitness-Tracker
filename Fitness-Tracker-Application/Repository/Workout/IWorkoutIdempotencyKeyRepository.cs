@@ -1,4 +1,4 @@
-﻿namespace Fitness_Tracker_Application.Features.Workout
+﻿namespace Fitness_Tracker_Application.Repository.Workout
 {
     public enum IdempotencyStatus 
     {
@@ -10,7 +10,7 @@
 
     public interface IWorkoutIdempotencyKeyRepository
     {
-        public Task<(IdempotencyStatus Status, string? Result)> LockWorkout(Guid userId, Guid idempotencyKey);
+        public Task<(IdempotencyStatus Status, Guid? Result)> LockWorkout(Guid userId, Guid idempotencyKey);
 
         public Task UpdateWorkoutIdempotencyStatus(Guid userId, Guid idempotencyKey, Guid exerciseId);
 
