@@ -28,7 +28,7 @@ namespace Fitness_Tracker_Infrastructure.Repository.User
 
         public async Task<Result<UserInformationDTO>> GetUserInformationAsync(Guid id, CancellationToken cancellationToken)
         {
-            string userKey = $"user:{id.ToString()}";
+            string userKey = $"user:{id}";
 
             var redisResult = await ReadFromRedis(userKey);
 

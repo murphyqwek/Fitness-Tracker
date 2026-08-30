@@ -9,7 +9,6 @@ namespace Fitness_Tracker_Application.Validation.User
         public UserInformationUpdateDTOValidation()
         {
             RuleFor(dto => dto.name)
-                .MinimumLength(1)
                 .MaximumLength(20);
 
             RuleFor(dto => dto.birthDay)

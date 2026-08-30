@@ -1,4 +1,5 @@
 ﻿using AutoMapper;
+using Fitness_Tracker_Application.DTO.User;
 using Fitness_Tracker_Application.Repository.User;
 using Fitness_Tracker_Infrastructure.Data;
 using Fitness_Tracker_Infrastructure.Model;
@@ -51,8 +52,7 @@ namespace Fitness_Tracker_Infrastructure.Repository.User
             string userKey = $"user:{user.Id}";
             var hashEntries = new HashEntry[]
                                 {
-                                    new HashEntry("id", user.Id.ToString()),
-                                    new HashEntry("login", user.Login),
+                                    new HashEntry(nameof(UserInformationDTO.Login), user.Login),
                                 };
 
             await _cache.HashSetAsync(userKey, hashEntries);
