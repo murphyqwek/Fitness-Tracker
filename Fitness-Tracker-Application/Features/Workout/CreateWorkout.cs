@@ -35,15 +35,14 @@ namespace Fitness_Tracker_Application.Features.Workout
                 return Result.Fail(lockResult.Status.ToString());
             }
 
-            foreach(var set in request.workoutDTO.workoutSets)
-            {
-                bool isExisted = await _exerciseRepo.IsExerciseExist(set.ExerciseId, cancellationToken);
+            var exercisesIds = request.workoutDTO.workoutSets.Select(set => set.ExerciseId).ToList();
+            bool isAllExists = await _exerciseRepo.IsAllExercisesExist(exercisesIds, cancellationToken);
 
-                if(!isExisted)
-                {
-                    return Result.Fail("Request contains exercise's ids that does not exist in database");
-                }
+            if (!isAllExists)
+            {
+                return Result.Fail("Request contains exercise's ids that does not exist in database");
             }
+
 
             var creationResult = await _repo.CreateNewWorkout(request.userId, request.workoutDTO, cancellationToken);
 

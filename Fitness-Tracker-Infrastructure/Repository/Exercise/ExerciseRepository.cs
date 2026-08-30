@@ -268,5 +268,20 @@ namespace Fitness_Tracker_Infrastructure.Repository.Exercises
 
             return exists;
         }
+
+        public async Task<bool> IsAllExercisesExist(List<int> ids, CancellationToken cancellationToken)
+        {
+            ids = ids.Distinct().ToList();
+
+            if (!ids.Any()) return true;
+
+            RedisKey[] keys = ids
+                .Select(id => (RedisKey)$"exercise:{id}")
+                .ToArray();
+
+            long foundCount = await _cache.KeyExistsAsync(keys);
+
+            return foundCount == ids.Count;
+        }
     }
 }

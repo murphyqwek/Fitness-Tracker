@@ -13,5 +13,7 @@ namespace Fitness_Tracker_Application.Repository.Exercises
         public Task FillCacheFromDb(CancellationToken cancellationToken);
 
         public Task<bool> IsExerciseExist(int id, CancellationToken cancellationToken);
+
+        public Task<bool> IsAllExercisesExist(List<int> ids, CancellationToken cancellationToken);
     }
 }
