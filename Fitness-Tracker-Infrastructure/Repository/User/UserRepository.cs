@@ -4,10 +4,8 @@ using Fitness_Tracker_Infrastructure.Data;
 using Fitness_Tracker_Infrastructure.Model;
 using FluentResults;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.EntityFrameworkCore.Storage;
 using Npgsql;
 using StackExchange.Redis;
-using System.Xml.Linq;
 
 namespace Fitness_Tracker_Infrastructure.Repository.User
 {
