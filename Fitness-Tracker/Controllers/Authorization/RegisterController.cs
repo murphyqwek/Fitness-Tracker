@@ -39,7 +39,7 @@ namespace Fitness_Tracker.Controllers.Authorization
 
             var userDto = result.Value;
 
-            return Ok(userDto);
+            return Created();
         }
     }
 }
