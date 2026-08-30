@@ -33,14 +33,9 @@ namespace Fitness_Tracker.Controllers.Workout
         }
 
         [HttpPost]
-        public async Task<IActionResult> Post([FromBody] CreateWorkoutDTO createRequest)
+        public async Task<IActionResult> Post([FromHeader(Name = "Idempotency-Key")] string idempotencyKeyStr, [FromBody] CreateWorkoutDTO createRequest)
         {
-            if(!Request.Headers.TryGetValue("Idempotency-Key", out var value)) 
-            {
-                return BadRequest("No Idempotency-Key was included in headers");
-            }
-
-            var idempotencyKey = new Guid(value.ToString());
+            var idempotencyKey = new Guid(idempotencyKeyStr);
             var userId = User.GetUserId();
 
             var result = await _mediator.Send(new CreateWorkoutCommand(userId, idempotencyKey, createRequest));
