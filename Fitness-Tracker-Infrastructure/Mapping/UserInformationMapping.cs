@@ -9,7 +9,7 @@ namespace Fitness_Tracker_Infrastructure.Mapping
         public UserInformationMapping() 
         {
             CreateMap<UserInformatonEntity, UserInformationDTO>()
-                .ForMember(dest => dest.login, opt => opt.MapFrom(src => src.User.Login));
+                .ForMember(dest => dest.Login, opt => opt.MapFrom(src => src.User.Login));
         }
     }
 }

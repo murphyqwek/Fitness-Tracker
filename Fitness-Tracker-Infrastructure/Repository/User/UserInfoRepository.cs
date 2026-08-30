@@ -65,26 +65,26 @@ namespace Fitness_Tracker_Infrastructure.Repository.User
         }
 
         private List<HashEntry> UserInfoDTOtoHashEntries(UserInformationDTO userInfoDTO) {
-            List<HashEntry> userHashEntries = new List<HashEntry>() { new HashEntry(nameof(userInfoDTO.login), userInfoDTO.login) };
+            List<HashEntry> userHashEntries = new List<HashEntry>() { new HashEntry(nameof(UserInformationDTO.Login), userInfoDTO.Login) };
 
-            if (userInfoDTO.name != null)
+            if (userInfoDTO.Name != null)
             {
-                userHashEntries.Add(new HashEntry(nameof(UserInformationDTO.name), userInfoDTO.name));
+                userHashEntries.Add(new HashEntry(nameof(UserInformationDTO.Name), userInfoDTO.Name));
             }
 
-            if (userInfoDTO.birthDay.HasValue)
+            if (userInfoDTO.BirthDay.HasValue)
             {
-                userHashEntries.Add(new HashEntry(nameof(UserInformationDTO.birthDay), userInfoDTO.birthDay.Value.ToString("O")));
+                userHashEntries.Add(new HashEntry(nameof(UserInformationDTO.BirthDay), userInfoDTO.BirthDay.Value.ToString("O")));
             }
 
-            if (userInfoDTO.height.HasValue)
+            if (userInfoDTO.Height.HasValue)
             {
-                userHashEntries.Add(new HashEntry(nameof(UserInformationDTO.height), userInfoDTO.height.Value));
+                userHashEntries.Add(new HashEntry(nameof(UserInformationDTO.Height), userInfoDTO.Height.Value));
             }
 
-            if (userInfoDTO.weight.HasValue)
+            if (userInfoDTO.Weight.HasValue)
             {
-                userHashEntries.Add(new HashEntry(nameof(UserInformationDTO.weight), userInfoDTO.weight.Value.ToString(CultureInfo.InvariantCulture)));
+                userHashEntries.Add(new HashEntry(nameof(UserInformationDTO.Weight), userInfoDTO.Weight.Value.ToString(CultureInfo.InvariantCulture)));
             }
 
             return userHashEntries;
@@ -108,10 +108,17 @@ namespace Fitness_Tracker_Infrastructure.Repository.User
 
             var userDict = userHashEntry.ToDictionary(
                 entry => entry.Name.ToString(),
-                entry => (object)entry.Value.ToString()
+                entry => entry.Value.ToString()
             );
 
-            var userInfoDTO = _mapper.Map<UserInformationDTO>(userDict);
+            var userInfoDTO = new UserInformationDTO
+            {
+                Login = userDict.TryGetValue(nameof(UserInformationDTO.Login), out string? login) ? login! : null,
+                Name = userDict.TryGetValue(nameof(UserInformationDTO.Name), out var name) ? name.ToString() : null,
+                BirthDay = userDict.TryGetValue(nameof(UserInformationDTO.BirthDay), out var bd) && DateOnly.TryParse(bd, out var dateVal) ? dateVal : null,
+                Height = userDict.TryGetValue(nameof(UserInformationDTO.Height), out var h) && int.TryParse(h, out var heightVal) ? heightVal : null,
+                Weight = userDict.TryGetValue(nameof(UserInformationDTO.Weight), out var w) && decimal.TryParse(w, out var weightVal) ? weightVal : null
+            };
 
             return (CacheState.Hit, userInfoDTO);
         }
@@ -130,25 +137,25 @@ namespace Fitness_Tracker_Infrastructure.Repository.User
             if (userUpdateDTO.name != null && user.Name != userUpdateDTO.name)
             {
                 user.Name = userUpdateDTO.name;
-                entries.Add(new HashEntry(nameof(UserInformationDTO.name), userUpdateDTO.name));
+                entries.Add(new HashEntry(nameof(UserInformationDTO.Name), userUpdateDTO.name));
             }
 
             if (userUpdateDTO.birthDay.HasValue && user.BirthDay != userUpdateDTO.birthDay)
             {
                 user.BirthDay = userUpdateDTO.birthDay;
-                entries.Add(new HashEntry(nameof(UserInformationDTO.birthDay), userUpdateDTO.birthDay.Value.ToString("O")));
+                entries.Add(new HashEntry(nameof(UserInformationDTO.BirthDay), userUpdateDTO.birthDay.Value.ToString("O")));
             }
 
             if (userUpdateDTO.height.HasValue && user.Height != userUpdateDTO.height)
             {
                 user.Height = userUpdateDTO.height;
-                entries.Add(new HashEntry(nameof(UserInformationDTO.height), userUpdateDTO.height.Value));
+                entries.Add(new HashEntry(nameof(UserInformationDTO.Height), userUpdateDTO.height.Value));
             }
 
             if (userUpdateDTO.weight.HasValue && user.Weight != userUpdateDTO.weight)
             {
                 user.Weight = userUpdateDTO.weight;
-                entries.Add(new HashEntry(nameof(UserInformationDTO.weight), userUpdateDTO.weight.Value.ToString(CultureInfo.InvariantCulture)));
+                entries.Add(new HashEntry(nameof(UserInformationDTO.Weight), userUpdateDTO.weight.Value.ToString(CultureInfo.InvariantCulture)));
             }
 
             if (entries.Count == 0)
