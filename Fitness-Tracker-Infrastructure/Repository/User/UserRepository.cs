@@ -1,8 +1,13 @@
 ﻿using AutoMapper;
 using Fitness_Tracker_Application.Repository.User;
 using Fitness_Tracker_Infrastructure.Data;
+using Fitness_Tracker_Infrastructure.Model;
 using FluentResults;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Storage;
+using Npgsql;
+using StackExchange.Redis;
+using System.Xml.Linq;
 
 namespace Fitness_Tracker_Infrastructure.Repository.User
 {
@@ -10,18 +15,52 @@ namespace Fitness_Tracker_Infrastructure.Repository.User
     {
         private readonly ApplicationDbContext _dbContext;
         private readonly IMapper _mapper;
+        private readonly IDatabase _cache;
 
-        public UserRepository(ApplicationDbContext dbContext, IMapper mapper)
+        public UserRepository(ApplicationDbContext dbContext, IMapper mapper, IConnectionMultiplexer connectionMultiplexer)
         {
             _dbContext = dbContext;
             _mapper = mapper;
+            _cache = connectionMultiplexer.GetDatabase();
         }
 
-        public async Task AddNewUserAsync(Fitness_Tracker_Domain.Entity.User user, CancellationToken cancellationToken)
+        public async Task<Result> AddNewUserAsync(Fitness_Tracker_Domain.Entity.User user, CancellationToken cancellationToken)
         {
-            await _dbContext.Users.AddAsync(_mapper.Map<Model.UserEntity>(user), cancellationToken);
+            UserEntity userEntity = _mapper.Map<UserEntity>(user);
 
-            await _dbContext.SaveChangesAsync(cancellationToken);
+            try
+            {
+                await _dbContext.Users.AddAsync(userEntity, cancellationToken);
+
+                await _dbContext.UserInformation.AddAsync(new UserInformatonEntity()
+                {
+                    Id = userEntity.Id,
+                    User = userEntity
+                });
+
+                await _dbContext.SaveChangesAsync(cancellationToken);
+            }
+            catch (DbUpdateException ex) when (ex.InnerException is PostgresException pgEx && pgEx.SqlState == PostgresErrorCodes.UniqueViolation)
+            {
+                return Result.Fail($"User's login {user.Login} is already taken");
+            }
+            catch (Exception)
+            {
+                return Result.Fail("Unexpectd error accuired during creation of new User");
+            }
+
+
+            string userKey = $"user:{user.Id}";
+            var hashEntries = new HashEntry[]
+                                {
+                                    new HashEntry("id", user.Id.ToString()),
+                                    new HashEntry("login", user.Login),
+                                };
+
+            await _cache.HashSetAsync(userKey, hashEntries);
+            await _cache.KeyExpireAsync(userKey, TimeSpan.FromHours(1));
+
+            return Result.Ok();
         }
 
         public async Task<bool> IsLoginAlreadyTakenAsync(string login, CancellationToken cancellationToken)

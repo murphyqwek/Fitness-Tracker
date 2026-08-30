@@ -25,14 +25,18 @@ namespace Fitness_Tracker_Application.Features.Users.Registration
             bool isLoginTaken = await _userRepository.IsLoginAlreadyTakenAsync(request.Login, cancellationToken);
             if (isLoginTaken)
             {
-                return Result.Fail<UserDTO>("User's login is already taken");
+                return Result.Fail($"User's login {request.Login} is already taken");
             }
 
             string hashedPassword = BCrypt.Net.BCrypt.HashPassword(request.Password);
 
             var user = new User(request.Login, hashedPassword);
 
-            await _userRepository.AddNewUserAsync(user, cancellationToken);
+            var result = await _userRepository.AddNewUserAsync(user, cancellationToken);
+
+            if(result.IsFailed) {
+                return result;
+            }
 
             return Result.Ok(_mapper.Map<UserDTO>(user));
         }
