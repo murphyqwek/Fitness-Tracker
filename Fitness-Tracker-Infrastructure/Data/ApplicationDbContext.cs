@@ -41,7 +41,14 @@ namespace Fitness_Tracker_Infrastructure.Data
             modelBuilder.Entity<WorkoutEntity>()
                 .HasMany(e => e.WorkoutSets)
                 .WithOne(m => m.Workout)
-                .HasForeignKey(m => m.WorkoutId);
+                .HasForeignKey(m => m.WorkoutId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<WorkoutSetEntity>()
+                .HasOne(w => w.Exercise)
+                .WithMany()
+                .HasForeignKey(w => w.ExerciseId)
+                .OnDelete(DeleteBehavior.Restrict);
 
             modelBuilder.Entity<WorkoutSetEntity>()
                 .Property(e => e.Weight)
