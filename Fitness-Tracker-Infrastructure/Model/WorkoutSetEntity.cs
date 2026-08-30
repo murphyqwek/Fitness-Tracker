@@ -4,6 +4,7 @@
     {
         public Guid Id { get; set; }
         public Guid WorkoutId { get; set; }
+        public int ExerciseId { get; set; }
         public WorkoutEntity Workout { get; set; } = null!;
         public ExerciseEntity Exercise { get; set; } = null!;
         public int Repetitions { get; set; }

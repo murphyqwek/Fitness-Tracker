@@ -6,6 +6,8 @@
         public Guid UserId { get; set; }
         public UserEntity User { get; set; } = null!;
         public DateTime Date { get; set; }
+        public string? Description { get; set; }
+        public string? Name { get; set; }
         public IReadOnlyList<WorkoutSetEntity> WorkoutSets { get; set; } = null!;
     }
 }
