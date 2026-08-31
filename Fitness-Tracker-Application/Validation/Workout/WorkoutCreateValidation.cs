@@ -18,6 +18,9 @@ namespace Fitness_Tracker_Application.Validation.Workout
             RuleFor(set => set.Repetitions)
                 .GreaterThanOrEqualTo(0)
                 .LessThan(5000);
+
+            RuleFor(set => set.Order)
+                .GreaterThanOrEqualTo(0);
         }
     }
     
@@ -34,6 +37,26 @@ namespace Fitness_Tracker_Application.Validation.Workout
 
             RuleForEach(dto => dto.workoutSets)
                 .SetValidator(new WorkoutSetCreateDTOValidation());
+
+            RuleFor(x => x.workoutSets)
+                .NotNull().WithMessage("Список подходов не может быть пустым")
+                .NotEmpty().WithMessage("Тренировка должна содержать как минимум один подход")
+                .Must(HaveSequentialOrder)
+                .WithMessage(dto => $"Порядок подходов (Order) некорректен. Номера должны начинаться с 0 и идти строго по порядку без пропусков (от 0 до {dto.workoutSets?.Count - 1}).");
+        }
+
+        private bool HaveSequentialOrder(IList<CreateWorkoutSetDTO> sets)
+        {
+            if (sets == null || sets.Count == 0)
+            {
+                return true;
+            }
+
+            var actualOrders = sets.Select(s => s.Order).OrderBy(o => o);
+
+            var expectedOrders = Enumerable.Range(0, sets.Count);
+
+            return actualOrders.SequenceEqual(expectedOrders);
         }
     }
 

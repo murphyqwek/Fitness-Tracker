@@ -25,17 +25,19 @@ namespace Fitness_Tracker_Infrastructure.Mapping
 
             CreateMap<WorkoutEntity, ResponseWorkoutDTO>();
 
+            CreateMap<ExerciseEntity, ResponseWorkoutSetReducedDTO>()
+            .ConstructUsing(e => new ResponseWorkoutSetReducedDTO(e.Id, e.Name));
+
+            CreateMap<WorkoutSetEntity, ResponseWorkoutSetReducedDTO>()
+                .ConstructUsing(s => new ResponseWorkoutSetReducedDTO(s.ExerciseId, s.Exercise.Name));
+
             CreateMap<WorkoutEntity, ResponseWorkoutReducedDTO>()
-            .ForMember(dest => dest.Date, opt => opt.MapFrom(src => src.CreatedAt.UtcDateTime))
-            .ForMember(dest => dest.workoutSets, opt => opt.MapFrom(src =>
-                src.WorkoutSets
-                   .GroupBy(s => s.ExerciseId)
-                   .Select(g => new ResponseWorkoutSetReducedDTO(
-                       g.Key,
-                       g.First().Exercise.Name
-                   ))
-                   .ToList()
-            ));
+                .ForMember(dest => dest.CreatedAt, opt => opt.MapFrom(src => src.CreatedAt.UtcDateTime))
+                .ForMember(dest => dest.workoutSets, opt => opt.MapFrom(src =>
+                    src.WorkoutSets
+                       .Select(s => s.Exercise) 
+                       .Distinct()
+                ));
         }
     }
 }

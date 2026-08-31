@@ -1,6 +1,7 @@
 ﻿using AutoMapper;
 using AutoMapper.QueryableExtensions;
 using Fitness_Tracker_Application.DTO.Workout;
+using Fitness_Tracker_Application.Repository.Exercises;
 using Fitness_Tracker_Application.Repository.Workout;
 using Fitness_Tracker_Infrastructure.Data;
 using Fitness_Tracker_Infrastructure.Model;
@@ -16,6 +17,7 @@ namespace Fitness_Tracker_Infrastructure.Repository.Workout
         private readonly ApplicationDbContext _context;
         private readonly IDatabase _cache;
         private readonly IMapper _mapper;
+        private readonly IExerciseRepository _exerciseRepo;
 
         private static readonly JsonSerializerOptions _jsonOptions = new()
         {
@@ -25,11 +27,12 @@ namespace Fitness_Tracker_Infrastructure.Repository.Workout
         private readonly TimeSpan _feedCacheTtl = TimeSpan.FromDays(7);
         private readonly TimeSpan _detailCacheTtl = TimeSpan.FromHours(24);
 
-        public WorkoutRepository(ApplicationDbContext context, IConnectionMultiplexer connectionMultiplexer, IMapper mapper)
+        public WorkoutRepository(ApplicationDbContext context, IConnectionMultiplexer connectionMultiplexer, IMapper mapper, IExerciseRepository exerciseRepo)
         {
             _context = context;
             _cache = connectionMultiplexer.GetDatabase();
             _mapper = mapper;
+            _exerciseRepo = exerciseRepo;
         }
 
         private static string GetWorkoutDetailKey(Guid userId, Guid workoutId) => $"workout:{userId}:{workoutId}";
@@ -172,7 +175,7 @@ namespace Fitness_Tracker_Infrastructure.Repository.Workout
 
                 _ = batch.StringSetAsync(reducedKey, json, _feedCacheTtl);
 
-                double score = new DateTimeOffset(workout.Date, TimeSpan.Zero).ToUnixTimeMilliseconds();
+                double score = workout.CreatedAt.ToUnixTimeMilliseconds();
                 zsetEntries.Add(new SortedSetEntry(workout.Id.ToString(), score));
             }
 

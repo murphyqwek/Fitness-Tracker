@@ -4,6 +4,7 @@ using Fitness_Tracker_Application.Repository.Workout;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using System.Security.Claims;
 
 namespace Fitness_Tracker.Controllers.Workout
 {
@@ -16,6 +17,18 @@ namespace Fitness_Tracker.Controllers.Workout
         public WorkoutController(IMediator mediator)
         {
             _mediator = mediator;
+        }
+
+        [HttpGet]
+        [Authorize]
+        public async Task<IActionResult> GetTimeline([FromQuery] DateTimeOffset? cursor, [FromQuery] int limit = 10)
+        {
+            var userId = User.GetUserId();
+
+            var query = new GetWorkoutsQuery(userId, cursor, limit);
+            var result = await _mediator.Send(query);
+
+            return Ok(result);
         }
 
         [HttpGet("{id}")]
