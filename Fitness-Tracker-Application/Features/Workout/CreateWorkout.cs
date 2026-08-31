@@ -44,7 +44,7 @@ namespace Fitness_Tracker_Application.Features.Workout
             }
 
 
-            var creationResult = await _repo.CreateNewWorkout(request.userId, request.workoutDTO, cancellationToken);
+            var creationResult = await _repo.CreateOrUpdateWorkoutAsync(request.userId, request.workoutDTO, cancellationToken);
 
             await _idempotencyKeyRepo.DeleteWorkoutIdempotencyStatus(request.userId, request.idempotencyKey);
 
