@@ -1,6 +1,6 @@
 ﻿using AutoMapper;
 using AutoMapper.QueryableExtensions;
-using Fitness_Tracker_Application.Features.Exercise;
+using Fitness_Tracker_Application.DTO.Exercise;
 using Fitness_Tracker_Application.Repository.Exercises;
 using Fitness_Tracker_Application.Service.Pagination;
 using Fitness_Tracker_Infrastructure.Data;

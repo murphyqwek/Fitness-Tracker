@@ -39,7 +39,6 @@ namespace Fitness_Tracker_Api
 
             builder.Services.AddValidatorsFromAssembly(typeof(RegisterUserCommand).Assembly);
 
-            builder.Services.AddSingleton<ExerciseFuzzySearch>();
 
             builder.Services.AddMediatR(cfg => 
                 {
@@ -144,20 +143,6 @@ namespace Fitness_Tracker_Api
 
 
             app.MapControllers();
-
-            using (var scope = app.Services.CreateScope())
-            {
-                var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
-                var cache = scope.ServiceProvider.GetRequiredService<ExerciseFuzzySearch>();
-
-                var exercisesFromDb = await db.Exercises
-                    .AsNoTracking()
-                    .Select(e => new ExerciseSearchDTO(e.Id, e.Name, e.Description, e.Muscles.Select(exMuscle => new ExerciseMuscleDTO(exMuscle.MuscleId, exMuscle.Muscle.Name, exMuscle.PercentageOfUsage)).ToList()))
-                    .ToListAsync();
-
-                cache.Initialize(exercisesFromDb);
-                Console.WriteLine($"[CACHE] Загружено {exercisesFromDb.Count} упражнений в память.");
-            }
 
             app.Run();
         }

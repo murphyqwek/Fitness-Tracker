@@ -1,4 +1,5 @@
-﻿using Fitness_Tracker_Application.Repository.Exercises;
+﻿using Fitness_Tracker_Application.DTO.Exercise;
+using Fitness_Tracker_Application.Repository.Exercises;
 using Fitness_Tracker_Application.Service.Pagination;
 using MediatR;
 
@@ -12,12 +13,10 @@ namespace Fitness_Tracker_Application.Features.Exercise
 
     public class ExerciseSearchQueary : IRequestHandler<ExerciseSearchCommand, PaginationResponse<ExerciseSearchReducedDTO>>
     {
-        private readonly ExerciseFuzzySearch _search;
         private readonly IExerciseRepository _exerciseRepository;
 
-        public ExerciseSearchQueary(ExerciseFuzzySearch search, IExerciseRepository exerciseRepository) 
+        public ExerciseSearchQueary(IExerciseRepository exerciseRepository) 
         {
-            _search = search;
             _exerciseRepository = exerciseRepository;
         }
 

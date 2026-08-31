@@ -39,7 +39,7 @@ namespace Fitness_Tracker_Tests.Application.Features.Registration
                 .ReturnsAsync(false);
 
             mockUserRepository
-                .Setup(repo => repo.AddNewUserAsync(It.IsAny<Fitness_Tracker_Domain.Entity.User>(), It.IsAny<CancellationToken>()))
+                .Setup(repo => repo.AddNewUserAsync(It.IsAny<User>(), It.IsAny<CancellationToken>()))
                 .ReturnsAsync(Result.Ok());
 
             var handler = new RegisterUserCommandHandler(mockUserRepository.Object, _mapper);
@@ -77,12 +77,12 @@ namespace Fitness_Tracker_Tests.Application.Features.Registration
             var result = await handler.Handle(command, CancellationToken.None);
 
             Assert.False(result.IsSuccess);
+
             Assert.Equal($"User's login {command.Login} is already taken", result.Errors.First().Message);
 
             mockUserRepository.Verify(
                 repo => repo.AddNewUserAsync(It.IsAny<User>(), It.IsAny<CancellationToken>()),
                 Times.Never);
         }
-
     }
 }
