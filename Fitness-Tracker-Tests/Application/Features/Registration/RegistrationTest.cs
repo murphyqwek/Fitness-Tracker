@@ -4,6 +4,7 @@ using Fitness_Tracker_Application.Features.Users.Registration;
 using Fitness_Tracker_Application.Mapping;
 using Fitness_Tracker_Application.Repository.User;
 using Fitness_Tracker_Domain.Entity;
+using FluentResults;
 using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
 
@@ -37,6 +38,10 @@ namespace Fitness_Tracker_Tests.Application.Features.Registration
                 .Setup(repo => repo.IsLoginAlreadyTakenAsync(command.Login, It.IsAny<CancellationToken>()))
                 .ReturnsAsync(false);
 
+            mockUserRepository
+                .Setup(repo => repo.AddNewUserAsync(It.IsAny<Fitness_Tracker_Domain.Entity.User>(), It.IsAny<CancellationToken>()))
+                .ReturnsAsync(Result.Ok());
+
             var handler = new RegisterUserCommandHandler(mockUserRepository.Object, _mapper);
 
             var result = await handler.Handle(command, CancellationToken.None);
@@ -63,12 +68,16 @@ namespace Fitness_Tracker_Tests.Application.Features.Registration
                 .Setup(repo => repo.IsLoginAlreadyTakenAsync(command.Login, It.IsAny<CancellationToken>()))
                 .ReturnsAsync(true);
 
+            mockUserRepository
+                    .Setup(repo => repo.AddNewUserAsync(It.IsAny<Fitness_Tracker_Domain.Entity.User>(), It.IsAny<CancellationToken>()))
+                    .ReturnsAsync(Result.Fail("User's login is already taken"));
+
             var handler = new RegisterUserCommandHandler(mockUserRepository.Object, _mapper);
 
             var result = await handler.Handle(command, CancellationToken.None);
 
             Assert.False(result.IsSuccess);
-            Assert.Equal("User's login is already taken", result.Errors.First().Message);
+            Assert.Equal($"User's login {command.Login} is already taken", result.Errors.First().Message);
 
             mockUserRepository.Verify(
                 repo => repo.AddNewUserAsync(It.IsAny<User>(), It.IsAny<CancellationToken>()),
