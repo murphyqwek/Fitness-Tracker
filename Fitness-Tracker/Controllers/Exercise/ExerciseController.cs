@@ -1,4 +1,5 @@
-﻿using Fitness_Tracker_Application.Features.Exercise;
+﻿using Fitness_Tracker_Application.DTO.Exercise;
+using Fitness_Tracker_Application.Features.Exercise;
 using Fitness_Tracker_Application.Service.Pagination;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;

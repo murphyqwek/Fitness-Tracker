@@ -1,4 +1,5 @@
-﻿using Fitness_Tracker_Application.Features.Exercise;
+﻿using Fitness_Tracker_Application.DTO.Exercise;
+using Fitness_Tracker_Application.Features.Exercise;
 using Fitness_Tracker_Application.Repository.Exercises;
 using Fitness_Tracker_Application.Service.Pagination;
 using FluentAssertions;
@@ -11,12 +12,10 @@ namespace Fitness_Tracker_Tests.Application.Features.Exercise
     public class ExerciseHandlersTests
     {
         private readonly Mock<IExerciseRepository> _exerciseRepoMock;
-        private readonly ExerciseFuzzySearch _fuzzySearch;
 
         public ExerciseHandlersTests()
         {
             _exerciseRepoMock = new Mock<IExerciseRepository>();
-            _fuzzySearch = new ExerciseFuzzySearch();
         }
 
         [Fact]
@@ -57,7 +56,7 @@ namespace Fitness_Tracker_Tests.Application.Features.Exercise
                 .Setup(r => r.GetExerciseByIdAsync(10, It.IsAny<CancellationToken>()))
                 .ReturnsAsync(Result.Ok(exerciseDto));
 
-            var handler = new GetExerciseByIdQueary(_fuzzySearch, _exerciseRepoMock.Object);
+            var handler = new GetExerciseByIdQueary(_exerciseRepoMock.Object);
 
             var result = await handler.Handle(new ExerciseSearchByIdCommand(10), CancellationToken.None);
 
@@ -82,7 +81,7 @@ namespace Fitness_Tracker_Tests.Application.Features.Exercise
                 .Setup(r => r.GetExerciseAsync("отжим", It.IsAny<IList<int>>(), 1, 10, It.IsAny<CancellationToken>()))
                 .ReturnsAsync(expectedResponse);
 
-            var handler = new ExerciseSearchQueary(_fuzzySearch, _exerciseRepoMock.Object);
+            var handler = new ExerciseSearchQueary(_exerciseRepoMock.Object);
             var command = new ExerciseSearchCommand("отжим", new List<int> { 1 })
             {
                 Page = 1,
