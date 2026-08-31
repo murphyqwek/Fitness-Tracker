@@ -133,7 +133,7 @@ namespace Fitness_Tracker_Infrastructure.Repository.Workout
 
             if (cachedIds.Length == limit)
             {
-                var reducedKeys = cachedIds.Select(id => (RedisKey)GetWorkoutReducedKey(Guid.Parse(id!))).ToArray();
+                var reducedKeys = cachedIds.Select(id => (RedisKey)GetWorkoutReducedKey(Guid.Parse(id.ToString()!))).ToArray();
                 var cachedWorkoutsJson = await _cache.StringGetAsync(reducedKeys);
 
                 if (cachedWorkoutsJson.All(v => v.HasValue))
