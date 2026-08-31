@@ -1,4 +1,5 @@
-﻿using Fitness_Tracker_Infrastructure.Model;
+﻿using Fitness_Tracker_Domain.Entity;
+using Fitness_Tracker_Infrastructure.Model;
 using Microsoft.EntityFrameworkCore;
 
 namespace Fitness_Tracker_Infrastructure.Data
@@ -43,6 +44,10 @@ namespace Fitness_Tracker_Infrastructure.Data
                 .WithOne(m => m.Workout)
                 .HasForeignKey(m => m.WorkoutId)
                 .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<WorkoutEntity>()
+                .HasIndex(w => new { w.UserId, w.CreatedAt })
+                .IsDescending(false, true);
 
             modelBuilder.Entity<WorkoutSetEntity>()
                 .HasOne(w => w.Exercise)
