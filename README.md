@@ -8,7 +8,8 @@
 
 **Fitness-Tracker** - серверная часть веб-приложения для записи, хранения и анализа ваших тренировок
 
-**Репозиторий фронтенда:** [Fitness-Tracker Frontend](https://github.com/murphyqwek/fintess-tracker-client) \\
+**Репозиторий фронтенда:** [Fitness-Tracker Frontend](https://github.com/murphyqwek/fintess-tracker-client) 
+
 **Сайт:** [Fitracker](https://fitracker.online)
 
 ---
