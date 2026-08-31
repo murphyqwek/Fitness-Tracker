@@ -2,6 +2,7 @@
 using Fitness_Tracker_Application.Features.Workout;
 using Fitness_Tracker_Application.Repository.Workout;
 using MediatR;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Fitness_Tracker.Controllers.Workout
@@ -18,6 +19,7 @@ namespace Fitness_Tracker.Controllers.Workout
         }
 
         [HttpGet("{id}")]
+        [Authorize]
         public async Task<IActionResult> Get(Guid id)
         {
             var userId = User.GetUserId();
@@ -33,6 +35,7 @@ namespace Fitness_Tracker.Controllers.Workout
         }
 
         [HttpPost]
+        [Authorize]
         public async Task<IActionResult> Post([FromHeader(Name = "Idempotency-Key")] string idempotencyKeyStr, [FromBody] CreateWorkoutDTO createRequest)
         {
             var idempotencyKey = new Guid(idempotencyKeyStr);
