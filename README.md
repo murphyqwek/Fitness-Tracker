@@ -14,7 +14,7 @@
 
 ---
 
-## Скриншоты интерфейса
+## Примеры интерфейса
 
 <div align="center">
   <img src="docs/img/dashboard.png" alt="Главная страница" width="80%">
