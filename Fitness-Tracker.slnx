@@ -1,5 +1,6 @@
 <Solution>
   <Folder Name="/Application/">
+    <Project Path="Fitness-Tracker-Analytics/Fitness-Tracker-Analytics.csproj" Id="f264cc98-2f2f-4de2-b1ed-99a4ecd04c92" />
     <Project Path="Fitness-Tracker-Application/Fitness-Tracker-Application.csproj" />
     <Project Path="Fitness-Tracker-Domain/Fitness-Tracker-Domain.csproj" />
     <Project Path="Fitness-Tracker-Infrastructure/Fitness-Tracker-Infrastructure.csproj" />
