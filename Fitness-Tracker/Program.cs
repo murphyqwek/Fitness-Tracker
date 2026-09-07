@@ -18,7 +18,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using StackExchange.Redis;
 using System.Security.Cryptography;
-using System.Text;
+
 namespace Fitness_Tracker_Api
 {
     public class Program
