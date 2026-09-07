@@ -1,30 +1,18 @@
 ﻿using Fitness_Tracker_Application.DTO.User;
 using MediatR;
-using Microsoft.Extensions.Options;
-using Microsoft.IdentityModel.Tokens;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
-using System.Security.Cryptography;
 
 namespace Fitness_Tracker_Application.Features.Users.JWT
 {
     public record GenerateJwtTokenCommand(UserDTO User) : IRequest<string>;
-    public class GenerateJwtToken : IRequestHandler<GenerateJwtTokenCommand, string>, IDisposable
+    public class GenerateJwtToken : IRequestHandler<GenerateJwtTokenCommand, string>
     {
-        private readonly JwtConfigDTO _configuration;
-        private readonly SigningCredentials _signingCredentials;
-        private readonly RSA _rsaKey;
+        private readonly IJwtSigningCredentialsProvider _signingProvider;
 
-        public GenerateJwtToken(IOptions<JwtConfigDTO> configuration)
+        public GenerateJwtToken(IJwtSigningCredentialsProvider signingProvider)
         {
-            _configuration = configuration.Value;
-            string privatePem = File.ReadAllText(_configuration.PrivateKeyPath);
-
-            _rsaKey = RSA.Create();
-            _rsaKey.ImportFromPem(privatePem);
-            var securityKey = new RsaSecurityKey(_rsaKey);
-
-            _signingCredentials = new SigningCredentials(securityKey, SecurityAlgorithms.RsaSha256);
+            _signingProvider = signingProvider;
         }
 
         public async Task<string> Handle(GenerateJwtTokenCommand request, CancellationToken cancellationToken)
@@ -36,18 +24,13 @@ namespace Fitness_Tracker_Application.Features.Users.JWT
             };
 
             var token = new JwtSecurityToken(
-                issuer: _configuration.Issuer,
-                audience: _configuration.Audience,
+                issuer: _signingProvider.Issuer,
+                audience: _signingProvider.Audience,
                 claims: claims,
                 expires: DateTime.UtcNow.AddMinutes(15),
-                signingCredentials: _signingCredentials);
+                signingCredentials: _signingProvider.Credentials);
 
             return new JwtSecurityTokenHandler().WriteToken(token);
-        }
-
-        public void Dispose()
-        {
-            _rsaKey?.Dispose();
         }
     }
 }

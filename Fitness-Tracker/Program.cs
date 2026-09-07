@@ -8,6 +8,7 @@ using Fitness_Tracker_Application.Repository.Workout;
 using Fitness_Tracker_Application.Validation;
 using Fitness_Tracker_Infrastructure.Data;
 using Fitness_Tracker_Infrastructure.Repository.Exercises;
+using Fitness_Tracker_Infrastructure.Repository.JWT;
 using Fitness_Tracker_Infrastructure.Repository.Refresh;
 using Fitness_Tracker_Infrastructure.Repository.User;
 using Fitness_Tracker_Infrastructure.Repository.Workout;
@@ -51,6 +52,7 @@ namespace Fitness_Tracker_Api
             builder.Services.AddScoped<IUserRepository, UserRepository>();
 
             builder.Services.Configure<JwtConfigDTO>(builder.Configuration.GetSection("Jwt"));
+            builder.Services.AddSingleton<IJwtSigningCredentialsProvider, JwtSigningCredentialsProvider>();
             builder.Services.AddSingleton<GenerateJwtToken>();
 
             builder.Services.AddExceptionHandler<ValidationExceptionHandler>();
