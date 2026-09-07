@@ -8,20 +8,21 @@ using System.Security.Cryptography;
 
 namespace Fitness_Tracker_Application.Features.Users.JWT
 {
-    public record GenerateJwtTokenCommand(UserDTO User) : IRequest<string>;
+    public record GenerateJwtTokenCommand(UserDTO User) : IRequest<string>, IDisposable;
     public class GenerateJwtToken : IRequestHandler<GenerateJwtTokenCommand, string>
     {
         private readonly JwtConfigDTO _configuration;
         private readonly SigningCredentials _signingCredentials;
+        private readonly RSA _rsaKey;
 
         public GenerateJwtToken(IOptions<JwtConfigDTO> configuration)
         {
             _configuration = configuration.Value;
             string privatePem = File.ReadAllText(_configuration.PrivateKeyPath);
 
-            var key = RSA.Create();
-            key.ImportFromPem(privatePem);
-            var securityKey = new RsaSecurityKey(key);
+            _rsaKey = RSA.Create();
+            _rsaKey.ImportFromPem(privatePem);
+            var securityKey = new RsaSecurityKey(_rsaKey);
 
             _signingCredentials = new SigningCredentials(securityKey, SecurityAlgorithms.RsaSha256);
         }
@@ -42,6 +43,11 @@ namespace Fitness_Tracker_Application.Features.Users.JWT
                 signingCredentials: _signingCredentials);
 
             return new JwtSecurityTokenHandler().WriteToken(token);
+        }
+
+        public void Dispose()
+        {
+            _rsaKey?.Dispose();
         }
     }
 }
