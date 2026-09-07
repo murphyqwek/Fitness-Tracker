@@ -16,6 +16,7 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using StackExchange.Redis;
+using System.Security.Cryptography;
 using System.Text;
 namespace Fitness_Tracker_Api
 {
@@ -47,20 +48,20 @@ namespace Fitness_Tracker_Api
                 }
             );
 
-            builder.Services.AddScoped<Fitness_Tracker_Application.Repository.User.IUserRepository, UserRepository>();
+            builder.Services.AddScoped<IUserRepository, UserRepository>();
 
             builder.Services.Configure<JwtConfigDTO>(builder.Configuration.GetSection("Jwt"));
-            builder.Services.AddScoped<GenerateJwtToken>();
+            builder.Services.AddSingleton<GenerateJwtToken>();
 
             builder.Services.AddExceptionHandler<ValidationExceptionHandler>();
             builder.Services.AddProblemDetails();
 
-            var jwtKey = builder.Configuration["Jwt:Key"];
+            string publicKeyPem = File.ReadAllText(builder.Configuration["Jwt:PublicKeyPath"]!);
 
-            if (string.IsNullOrEmpty(jwtKey))
-            {
-                jwtKey = "temporary_secret_key_for_migrations_only_32_chars_long";
-            }
+            RSA publicRsa = RSA.Create();
+            publicRsa.ImportFromPem(publicKeyPem);
+
+            var validationKey = new RsaSecurityKey(publicRsa);
 
             builder.Services.AddAuthentication(configureOptions =>
             {
@@ -76,9 +77,9 @@ namespace Fitness_Tracker_Api
                     ValidateLifetime = true,
 
                     ValidIssuer = builder.Configuration["Jwt:Issuer"],
-                    ValidAlgorithms = new[] { SecurityAlgorithms.HmacSha256 },
+                    ValidAlgorithms = new[] { SecurityAlgorithms.RsaSha256 },
                     ValidAudience = builder.Configuration["Jwt:Audience"],
-                    IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(builder.Configuration["Jwt:Key"]!))
+                    IssuerSigningKey = validationKey
                 };
 
                 options.Events = new JwtBearerEvents

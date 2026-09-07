@@ -4,7 +4,7 @@ using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
-using System.Text;
+using System.Security.Cryptography;
 
 namespace Fitness_Tracker_Application.Features.Users.JWT
 {
@@ -12,17 +12,22 @@ namespace Fitness_Tracker_Application.Features.Users.JWT
     public class GenerateJwtToken : IRequestHandler<GenerateJwtTokenCommand, string>
     {
         private readonly JwtConfigDTO _configuration;
+        private readonly SigningCredentials _signingCredentials;
 
         public GenerateJwtToken(IOptions<JwtConfigDTO> configuration)
         {
             _configuration = configuration.Value;
+            string privatePem = File.ReadAllText(_configuration.PrivateKeyPath);
+
+            var key = RSA.Create();
+            key.ImportFromPem(privatePem);
+            var securityKey = new RsaSecurityKey(key);
+
+            _signingCredentials = new SigningCredentials(securityKey, SecurityAlgorithms.RsaSha256);
         }
 
         public async Task<string> Handle(GenerateJwtTokenCommand request, CancellationToken cancellationToken)
         {
-            var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_configuration.Key));
-            var signingCredentials = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
-
             List<Claim> claims = new List<Claim>()
             {
                 new Claim(JwtRegisteredClaimNames.Sub, request.User.Id.ToString()),
@@ -34,7 +39,7 @@ namespace Fitness_Tracker_Application.Features.Users.JWT
                 audience: _configuration.Audience,
                 claims: claims,
                 expires: DateTime.UtcNow.AddMinutes(15),
-                signingCredentials: signingCredentials);
+                signingCredentials: _signingCredentials);
 
             return new JwtSecurityTokenHandler().WriteToken(token);
         }
