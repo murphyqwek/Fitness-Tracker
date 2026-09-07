@@ -8,8 +8,8 @@ using System.Security.Cryptography;
 
 namespace Fitness_Tracker_Application.Features.Users.JWT
 {
-    public record GenerateJwtTokenCommand(UserDTO User) : IRequest<string>, IDisposable;
-    public class GenerateJwtToken : IRequestHandler<GenerateJwtTokenCommand, string>
+    public record GenerateJwtTokenCommand(UserDTO User) : IRequest<string>;
+    public class GenerateJwtToken : IRequestHandler<GenerateJwtTokenCommand, string>, IDisposable
     {
         private readonly JwtConfigDTO _configuration;
         private readonly SigningCredentials _signingCredentials;
