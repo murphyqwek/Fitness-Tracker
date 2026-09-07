@@ -4,6 +4,7 @@ using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
+using System.Security.Cryptography;
 using System.Text;
 
 namespace Fitness_Tracker_Application.Features.Users.JWT
@@ -20,7 +21,8 @@ namespace Fitness_Tracker_Application.Features.Users.JWT
 
         public async Task<string> Handle(GenerateJwtTokenCommand request, CancellationToken cancellationToken)
         {
-            var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_configuration.Key));
+            var key = RSA.Create();
+            key.ImportRSAPrivateKey(Convert.FromBase64String(_configuration.Key), out _);
             var signingCredentials = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
 
             List<Claim> claims = new List<Claim>()
