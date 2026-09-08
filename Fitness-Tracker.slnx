@@ -12,4 +12,5 @@
   <Folder Name="/Tests/">
     <Project Path="Fitness-Tracker-Tests/Fitness-Tracker-Tests.csproj" />
   </Folder>
+  <Project Path="Fitness-Tracker-Contracts/Fitness-Tracker-Contracts.csproj" Id="b229078a-9025-49b1-bef1-b8bbe78e282c" />
 </Solution>
