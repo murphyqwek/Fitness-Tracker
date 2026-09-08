@@ -17,6 +17,14 @@ namespace Fintess_Tracker_Analytics.Data
 
             modelBuilder.Entity<WorkoutAnalyticsEntity>()
                 .HasIndex(w => new { w.UserId, w.CompletedAt });
+
+            modelBuilder.Entity<WorkoutAnalyticsEntity>()
+                .Property(workout => workout.Volume)
+                .HasPrecision(18, 2);
+
+            modelBuilder.Entity<WorkoutAnalyticsEntity>()
+                .Property(workout => workout.MaxEstimatedOneRepMax)
+                .HasPrecision(18, 2);
         }
     }
 }
