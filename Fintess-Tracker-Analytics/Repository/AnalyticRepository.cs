@@ -66,6 +66,8 @@ namespace Fintess_Tracker_Analytics.Repository
                 workoutAnalytics,
                 cancellationToken);
 
+            await _context.SaveChangesAsync(cancellationToken);
+
             return Result.Ok();
         }
     }
