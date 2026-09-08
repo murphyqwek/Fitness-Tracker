@@ -18,6 +18,12 @@ namespace Fintess_Tracker_Analytics.Data
                 .HasKey(w => w.Id);
             modelBuilder.Entity<WeeklyRecordEntity>()
                 .HasKey(wr => new { wr.UserId, wr.WeekStart });
+            modelBuilder.Entity<WeeklyRecordEntity>()
+                .Property(wr => wr.EstimatedOneRepMax)
+                .HasColumnType("decimal(18,2)");
+            modelBuilder.Entity<MonthlyVolumeEntity>()
+                .Property(mv => mv.TotalVolume)
+                .HasColumnType("decimal(18,2)");
             modelBuilder.Entity<MonthlyVolumeEntity>()
                 .HasKey(mv => new { mv.UserId, mv.Year, mv.Month });
         }
