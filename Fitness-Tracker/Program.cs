@@ -1,3 +1,4 @@
+using Confluent.Kafka;
 using Fitness_Tracker_Application.Features.Exercise;
 using Fitness_Tracker_Application.Features.Users.JWT;
 using Fitness_Tracker_Application.Features.Users.Registration;
@@ -15,6 +16,7 @@ using Fitness_Tracker_Infrastructure.Repository.Workout;
 using FluentValidation;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Storage.ValueConversion.Internal;
 using Microsoft.IdentityModel.Tokens;
 using StackExchange.Redis;
 using System.Security.Cryptography;
@@ -48,6 +50,20 @@ namespace Fitness_Tracker_Api
                     cfg.AddOpenBehavior(typeof(ValidationBehavior<,>));
                 }
             );
+
+            builder.Services.AddSingleton<IProducer<string, string>>(sp =>
+            {
+                var configuration = sp.GetRequiredService<IConfiguration>();
+
+                var config = new ProducerConfig
+                {
+                    BootstrapServers = configuration.GetConnectionString("Kafka:BootstrapServers"),
+                    Acks = Acks.All,
+                    EnableIdempotence = true,
+                };
+
+                return new ProducerBuilder<string, string>(config).Build();
+            });
 
             builder.Services.AddScoped<IUserRepository, UserRepository>();
 
