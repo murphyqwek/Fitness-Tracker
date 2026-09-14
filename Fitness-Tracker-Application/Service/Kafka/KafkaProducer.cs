@@ -12,15 +12,13 @@ namespace Fitness_Tracker_Application.Service.Kafka
             _producer = producer;
         }
 
-        public async Task ProduceAsync<T>(string topic, string key, T message, CancellationToken cancellationToken)
+        public async Task ProduceAsync(string topic, string key, string message, CancellationToken cancellationToken)
         {
-            string serialized = JsonSerializer.Serialize(message);
-
             await _producer.ProduceAsync(topic,    
                         new Message<string, string>
                         {
                             Key = key,
-                            Value = serialized
+                            Value = message
                         },
                         cancellationToken);
         }

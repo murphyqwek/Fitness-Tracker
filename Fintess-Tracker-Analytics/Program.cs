@@ -1,7 +1,11 @@
-
 using Fintess_Tracker_Analytics.Background.Kafka;
+using Fintess_Tracker_Analytics.Data;
+using Fintess_Tracker_Analytics.Repository;
+using Fintess_Tracker_Analytics.Service;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
+using StackExchange.Redis;
 using System.Security.Cryptography;
 
 namespace Fintess_Tracker_Analytics
@@ -14,72 +18,110 @@ namespace Fintess_Tracker_Analytics
 
             builder.Services.AddEndpointsApiExplorer();
             builder.Services.AddSwaggerGen();
-
             builder.Services.AddControllers();
 
-            var app = builder.Build();
+            builder.Services.AddAutoMapper(
+                cfg => cfg.AddMaps(typeof(Program).Assembly));
 
             builder.Services.AddHostedService<WorkoutCompletedConsumer>();
 
-            builder.Services.AddAutoMapper(cfg => cfg.AddMaps(typeof(Program).Assembly));
+            var conn = builder.Configuration.GetConnectionString("DefaultConnection");
+            builder.Services.AddDbContext<ApplicationDbContext>(options => options.UseNpgsql(conn));
 
-            string publicKeyPem = File.ReadAllText(builder.Configuration["Jwt:PublicKeyPath"]!);
+            builder.Services.AddScoped<AnalyticService>();
+            builder.Services.AddScoped<IAnalyticRepository, AnalyticRepository>();
 
-            RSA publicRsa = RSA.Create();
-            publicRsa.ImportFromPem(publicKeyPem);
-
-            var validationKey = new RsaSecurityKey(publicRsa);
-
-            builder.Services.AddAuthentication(configureOptions =>
+            builder.Services.AddSingleton<IConnectionMultiplexer>(cm =>
             {
-                configureOptions.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
-                configureOptions.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
-            }).AddJwtBearer(options =>
-            {
-                options.TokenValidationParameters = new TokenValidationParameters
-                {
-                    ValidateIssuer = true,
-                    ValidateIssuerSigningKey = true,
-                    ValidateAudience = true,
-                    ValidateLifetime = true,
-
-                    ValidIssuer = builder.Configuration["Jwt:Issuer"],
-                    ValidAlgorithms = new[] { SecurityAlgorithms.RsaSha256 },
-                    ValidAudience = builder.Configuration["Jwt:Audience"],
-                    IssuerSigningKey = validationKey
-                };
-
-                options.Events = new JwtBearerEvents
-                {
-                    OnMessageReceived = context =>
-                    {
-                        if (context.Request.Cookies.ContainsKey("accessToken"))
-                        {
-                            context.Token = context.Request.Cookies["accessToken"];
-                        }
-                        return Task.CompletedTask;
-                    }
-                };
+                ConfigurationOptions options = ConfigurationOptions.Parse(builder.Configuration.GetConnectionString("Redis")!, true);
+                return ConnectionMultiplexer.Connect(options);
             });
+
+            builder.Services.AddAuthentication(options =>
+            {
+                options.DefaultAuthenticateScheme =
+                    JwtBearerDefaults.AuthenticationScheme;
+
+                options.DefaultChallengeScheme =
+                    JwtBearerDefaults.AuthenticationScheme;
+            })
+            .AddJwtBearer(options =>
+            {
+                var publicKeyPem =
+                    builder.Configuration["Jwt:PublicKeyPem"];
+
+                if (string.IsNullOrWhiteSpace(publicKeyPem))
+                {
+                    var publicKeyPath =
+                        builder.Configuration["Jwt:PublicKeyPath"];
+
+                    if (string.IsNullOrWhiteSpace(publicKeyPath))
+                    {
+                        throw new InvalidOperationException(
+                            "Neither Jwt:PublicKeyPem nor Jwt:PublicKeyPath is configured.");
+                    }
+
+                    publicKeyPem =
+                        File.ReadAllText(publicKeyPath);
+                }
+
+                var publicRsa = RSA.Create();
+
+                publicRsa.ImportFromPem(publicKeyPem);
+
+                var validationKey =
+                    new RsaSecurityKey(publicRsa);
+
+                options.TokenValidationParameters =
+                    new TokenValidationParameters
+                    {
+                        ValidateIssuer = true,
+                        ValidateIssuerSigningKey = true,
+                        ValidateAudience = true,
+                        ValidateLifetime = true,
+
+                        ValidIssuer =
+                            builder.Configuration["Jwt:Issuer"],
+
+                        ValidAudience =
+                            builder.Configuration["Jwt:Audience"],
+
+                        ValidAlgorithms =
+                        [
+                            SecurityAlgorithms.RsaSha256
+                        ],
+
+                        IssuerSigningKey = validationKey
+                    };
+            });
+
+            builder.Services.AddAuthorization();
+
+            if (builder.Environment.IsDevelopment())
+            {
+                builder.Services.AddCors(options =>
+                {
+                    options.AddPolicy("AllowAll", policy =>
+                    {
+                        policy
+                            .AllowAnyOrigin()
+                            .AllowAnyMethod()
+                            .AllowAnyHeader();
+                    });
+                });
+            }
+
+            var app = builder.Build();
 
             app.UseSwagger();
             app.UseSwaggerUI();
 
             if (app.Environment.IsDevelopment())
             {
-                builder.Services.AddCors(options =>
-                {
-                    options.AddPolicy("AllowAll", builder =>
-                    {
-                        builder.AllowAnyOrigin()
-                                .AllowAnyMethod()
-                                .AllowAnyHeader()
-                                .AllowCredentials();
-                    });
-                });
+                app.UseCors("AllowAll");
             }
 
-            app.UseAuthorization();
+            app.UseAuthentication();
             app.UseAuthorization();
 
             app.MapControllers();

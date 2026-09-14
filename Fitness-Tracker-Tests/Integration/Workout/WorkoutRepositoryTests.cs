@@ -1,14 +1,13 @@
 ﻿using AutoMapper;
 using Fitness_Tracker_Application.DTO.Workout;
 using Fitness_Tracker_Application.Repository.Exercises;
+using Fitness_Tracker_Application.Repository.Outbox;
 using Fitness_Tracker_Infrastructure.Model;
 using Fitness_Tracker_Infrastructure.Repository.Workout;
 using FluentAssertions;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
-using StackExchange.Redis;
-using Xunit;
 
 namespace Fitness_Tracker.Tests.Integration
 {
@@ -38,11 +37,13 @@ namespace Fitness_Tracker.Tests.Integration
 
             var exerciseRepoMock = new Mock<IExerciseRepository>();
 
+            var outboxRepoMock = new Mock<IOutboxMessageRepository>();
+
             _repository = new WorkoutRepository(
                 _fixture.DbContext,
                 _fixture.RedisMultiplexer,
                 _mapper,
-                exerciseRepoMock.Object
+                outboxRepoMock.Object
             );
         }
 

@@ -96,6 +96,7 @@ namespace Fitness_Tracker_Infrastructure.Repository.Workout
                 }
                 else
                 {
+                    workoutEntity.Id = Guid.CreateVersion7();
                     await _context.Workouts.AddAsync(workoutEntity, cancellationToken);
                     var outboxMessage = GenerateOutboxMessageWhenCreate(workoutEntity, userId);
                     _outboxRepo.AddMessage(outboxMessage);

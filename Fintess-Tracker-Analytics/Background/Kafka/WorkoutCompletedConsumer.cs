@@ -12,6 +12,7 @@ namespace Fintess_Tracker_Analytics.Background.Kafka
         private readonly IConfiguration _configuration;
         private readonly IServiceScopeFactory _scopeFactory;
         private readonly IMapper _mapper;
+        private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web);
 
         public WorkoutCompletedConsumer(IConfiguration configuration, IServiceScopeFactory scopeFactory, IMapper mapper)
         {
@@ -46,7 +47,7 @@ namespace Fintess_Tracker_Analytics.Background.Kafka
 
                     using (var scope = _scopeFactory.CreateScope())
                     {
-                        var workoutCompletedEvent = JsonSerializer.Deserialize<WorkoutCompletedV1Event>(consumeResult.Message.Value);
+                        var workoutCompletedEvent = JsonSerializer.Deserialize<WorkoutCompletedV1Event>(consumeResult.Message.Value, JsonOptions);
 
                         var analyticService = scope.ServiceProvider.GetRequiredService<AnalyticService>();
 

@@ -68,7 +68,6 @@ public sealed class OutboxBackgroundService : BackgroundService
             }
             catch
             {
-                // оставляем ProcessedAt = null
             }
         }
 

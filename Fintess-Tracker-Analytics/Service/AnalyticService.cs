@@ -8,11 +8,9 @@ namespace Fintess_Tracker_Analytics.Service;
 
 public sealed class AnalyticService
 {
-    private static readonly TimeSpan CacheExpiration =
-        TimeSpan.FromMinutes(10);
+    private static readonly TimeSpan CacheExpiration = TimeSpan.FromMinutes(10);
 
-    private static readonly JsonSerializerOptions JsonOptions =
-        new(JsonSerializerDefaults.Web);
+    private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web);
 
     private readonly IAnalyticRepository _repository;
     private readonly IDatabase _cache;

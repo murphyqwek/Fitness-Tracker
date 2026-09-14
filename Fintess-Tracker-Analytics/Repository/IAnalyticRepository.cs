@@ -1,5 +1,4 @@
-﻿using Fintess_Tracker_Analytics.Data.Model;
-using Fintess_Tracker_Analytics.DTO;
+﻿using Fintess_Tracker_Analytics.DTO;
 using FluentResults;
 
 namespace Fintess_Tracker_Analytics.Repository
