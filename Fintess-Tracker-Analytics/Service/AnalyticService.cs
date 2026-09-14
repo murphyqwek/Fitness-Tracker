@@ -17,17 +17,13 @@ public sealed class AnalyticService
     private readonly IAnalyticRepository _repository;
     private readonly IDatabase _cache;
 
-    public AnalyticService(
-        IAnalyticRepository repository,
-        IConnectionMultiplexer multiplexer)
+    public AnalyticService(IAnalyticRepository repository, IConnectionMultiplexer multiplexer)
     {
         _repository = repository;
         _cache = multiplexer.GetDatabase();
     }
 
-    public async Task<Result> SaveWorkoutAsync(
-        CompletedWorkoutDTO workout,
-        CancellationToken cancellationToken)
+    public async Task<Result> SaveWorkoutAsync(CompletedWorkoutDTO workout, CancellationToken cancellationToken)
     {
         var maxEstimatedOneRepMax = workout.Sets
             .Select(WorkoutAnalyticsCalculator.CalculateE1Rm)

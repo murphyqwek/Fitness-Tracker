@@ -32,6 +32,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\Fitness-Tracker-Contracts\Fitness-Tracker-Contracts.csproj" />
+    <ProjectReference Include="..\Fitness-Tracker-Shared\Fitness-Tracker-Shared.csproj" />
   </ItemGroup>
 
 </Project>
