@@ -1,4 +1,5 @@
-﻿using Fintess_Tracker_Analytics.Data.Entity;
+﻿using Confluent.Kafka;
+using Fintess_Tracker_Analytics.Data.Entity;
 using Fitness_Tracker.Tests.Integration;
 using Fitness_Tracker_Application.DTO.Workout;
 using Fitness_Tracker_Application.Repository.Workout;
@@ -201,5 +202,122 @@ public sealed class WorkoutAnalyticsIntegrationTests
         }
 
         throw new TimeoutException($"Analytics for workout {workoutId} was not created within {timeout}.");
+    }
+
+    [Fact]
+    public async Task DuplicateWorkoutCompletedEvent_ShouldBeProcessedIdempotently()
+    {
+        await using var analyticsFactory =
+            new AnalyticsFactory(_fixture);
+
+        using var analyticsClient =
+            analyticsFactory.CreateClient();
+
+        var userId = Guid.NewGuid();
+        var duplicatedWorkoutId = Guid.CreateVersion7();
+        var markerWorkoutId = Guid.CreateVersion7();
+
+        var duplicatedEvent = new WorkoutCompletedV1Event(
+            EventId: Guid.NewGuid(),
+            WorkoutId: duplicatedWorkoutId,
+            UserId: userId,
+            CompletedAt: DateTimeOffset.UtcNow,
+            Exercises:
+            [
+                new ExerciseEntry(
+                1,
+                [
+                    new SetEntry(100m, 10),
+                    new SetEntry(110m, 5)
+                ])
+            ]);
+
+        var markerEvent = new WorkoutCompletedV1Event(
+            EventId: Guid.NewGuid(),
+            WorkoutId: markerWorkoutId,
+            UserId: userId,
+            CompletedAt: DateTimeOffset.UtcNow,
+            Exercises:
+            [
+                new ExerciseEntry(
+                2,
+                [
+                    new SetEntry(50m, 10)
+                ])
+            ]);
+
+        var jsonOptions =
+            new JsonSerializerOptions(JsonSerializerDefaults.Web);
+
+        using var producer =
+            new ProducerBuilder<string, string>(
+                new ProducerConfig
+                {
+                    BootstrapServers =
+                        _fixture.KafkaContainer.GetBootstrapAddress(),
+
+                    Acks = Acks.All,
+                    EnableIdempotence = true
+                })
+            .Build();
+
+        var key = userId.ToString();
+
+        var duplicatePayload =
+            JsonSerializer.Serialize(
+                duplicatedEvent,
+                jsonOptions);
+
+        await producer.ProduceAsync(
+            "workout.completed",
+            new Message<string, string>
+            {
+                Key = key,
+                Value = duplicatePayload
+            });
+
+        await producer.ProduceAsync(
+            "workout.completed",
+            new Message<string, string>
+            {
+                Key = key,
+                Value = duplicatePayload
+            });
+
+        await producer.ProduceAsync(
+            "workout.completed",
+            new Message<string, string>
+            {
+                Key = key,
+                Value = JsonSerializer.Serialize(
+                    markerEvent,
+                    jsonOptions)
+            });
+
+        await WaitForAnalyticsAsync(
+            analyticsFactory.Services,
+            markerWorkoutId,
+            TimeSpan.FromSeconds(15));
+
+        await using var scope =
+            analyticsFactory.Services.CreateAsyncScope();
+
+        var context = scope.ServiceProvider
+            .GetRequiredService<AnalyticsDbContext>();
+
+        var duplicatedWorkoutCount =
+            await context.Workouts
+                .AsNoTracking()
+                .CountAsync(x =>
+                    x.WorkoutId == duplicatedWorkoutId);
+
+        var markerWorkoutCount =
+            await context.Workouts
+                .AsNoTracking()
+                .CountAsync(x =>
+                    x.WorkoutId == markerWorkoutId);
+
+        duplicatedWorkoutCount.Should().Be(1);
+        markerWorkoutCount.Should().Be(1);
     }
 }

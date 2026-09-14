@@ -35,9 +35,7 @@ public sealed class AnalyticService
             WorkoutAnalyticsCalculator.CalculateVolume(workout),
             maxEstimatedOneRepMax);
 
-        var result = await _repository.SaveNewWorkoutAsync(
-            workoutAnalytics,
-            cancellationToken);
+        var result = await _repository.SaveNewWorkoutAsync(workoutAnalytics, cancellationToken);
 
         if (result.IsFailed)
             return result;
