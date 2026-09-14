@@ -6,6 +6,7 @@ using Fitness_Tracker_Application.Repository.Exercises;
 using Fitness_Tracker_Application.Repository.Refresh;
 using Fitness_Tracker_Application.Repository.User;
 using Fitness_Tracker_Application.Repository.Workout;
+using Fitness_Tracker_Application.Service.Kafka;
 using Fitness_Tracker_Application.Validation;
 using Fitness_Tracker_Infrastructure.Data;
 using Fitness_Tracker_Infrastructure.Repository.Exercises;
@@ -64,6 +65,8 @@ namespace Fitness_Tracker_Api
 
                 return new ProducerBuilder<string, string>(config).Build();
             });
+
+            builder.Services.AddScoped<IKafkaProducer, KafkaProducer>();
 
             builder.Services.AddScoped<IUserRepository, UserRepository>();
 
