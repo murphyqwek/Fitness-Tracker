@@ -8,6 +8,7 @@ using Fitness_Tracker_Application.Repository.User;
 using Fitness_Tracker_Application.Repository.Workout;
 using Fitness_Tracker_Application.Service.Kafka;
 using Fitness_Tracker_Application.Validation;
+using Fitness_Tracker_Infrastructure.BackgroundServices;
 using Fitness_Tracker_Infrastructure.Data;
 using Fitness_Tracker_Infrastructure.Repository.Exercises;
 using Fitness_Tracker_Infrastructure.Repository.JWT;
@@ -127,6 +128,8 @@ namespace Fitness_Tracker_Api
             builder.Services.AddScoped<IUserInformationRepository, UserInfoRepository>();
             builder.Services.AddScoped<IWorkoutIdempotencyKeyRepository, RedisWorkoutIdempotencyRepository>();
             builder.Services.AddScoped<IWorkoutRepository, WorkoutRepository>();
+
+            builder.Services.AddHostedService<OutboxBackgroundService>();
 
             builder.Services.AddAuthorization();
 

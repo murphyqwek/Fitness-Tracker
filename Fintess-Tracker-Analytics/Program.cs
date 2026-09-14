@@ -1,4 +1,5 @@
 
+using Fintess_Tracker_Analytics.Background.Kafka;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using System.Security.Cryptography;
@@ -17,6 +18,10 @@ namespace Fintess_Tracker_Analytics
             builder.Services.AddControllers();
 
             var app = builder.Build();
+
+            builder.Services.AddHostedService<WorkoutCompletedConsumer>();
+
+            builder.Services.AddAutoMapper(cfg => cfg.AddMaps(typeof(Program).Assembly));
 
             string publicKeyPem = File.ReadAllText(builder.Configuration["Jwt:PublicKeyPath"]!);
 

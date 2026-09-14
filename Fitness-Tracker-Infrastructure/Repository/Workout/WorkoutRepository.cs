@@ -67,7 +67,9 @@ namespace Fitness_Tracker_Infrastructure.Repository.Workout
                 Id = workoutCompletedEventMessage.EventId,
                 Type = nameof(WorkoutCompletedV1Event),
                 Payload = JsonSerializer.Serialize(workoutCompletedEventMessage, _jsonOptions),
-                OccurredAt = DateTimeOffset.UtcNow
+                OccurredAt = DateTimeOffset.UtcNow,
+                Topic = "workout.completed",
+                Key = userId.ToString()
             };
 
 

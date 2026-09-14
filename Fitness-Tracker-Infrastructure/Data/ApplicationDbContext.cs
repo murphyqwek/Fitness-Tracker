@@ -30,6 +30,8 @@ namespace Fitness_Tracker_Infrastructure.Data
                 entity.Property(e => e.OccurredAt).IsRequired();
                 entity.Property(e => e.Type).IsRequired();
                 entity.Property(e => e.Payload).IsRequired();
+                entity.Property(e => e.Topic).IsRequired();
+                entity.Property(e => e.Key).IsRequired();
                 entity.HasIndex(e => e.ProcessedAt);
             });
 
