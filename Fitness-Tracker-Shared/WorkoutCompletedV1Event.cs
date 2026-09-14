@@ -6,7 +6,7 @@
                                                  DateTimeOffset CompletedAt,
                                                  IReadOnlyCollection<ExerciseEntry> Exercises);
 
-    public sealed record ExerciseEntry(Guid ExerciseId, IReadOnlyCollection<SetEntry> Sets);
+    public sealed record ExerciseEntry(int ExerciseId, IReadOnlyCollection<SetEntry> Sets);
 
-    public sealed record SetEntry(double Weight, int Reps);
+    public sealed record SetEntry(decimal Weight, int Reps);
 }

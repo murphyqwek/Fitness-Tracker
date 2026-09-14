@@ -1,21 +1,28 @@
-﻿using System.Text.Json;
+﻿using Confluent.Kafka;
+using System.Text.Json;
 
 namespace Fitness_Tracker_Application.Service.Kafka
 {
     public class KafkaProducer : IKafkaProducer
     {
-        private readonly IKafkaProducer _producer;
+        private readonly IProducer<string, string> _producer;
 
-        public KafkaProducer(IKafkaProducer producer)
+        public KafkaProducer(IProducer<string, string> producer)
         {
             _producer = producer;
         }
 
-        public Task Produce<T>(string topic, string key, T message, CancellationToken cancellationToken)
+        public async Task Produce<T>(string topic, string key, T message, CancellationToken cancellationToken)
         {
             string serialized = JsonSerializer.Serialize(message);
 
-            return _producer.Produce(topic, key, serialized, cancellationToken);
+            await _producer.ProduceAsync(topic,    
+                        new Message<string, string>
+                        {
+                            Key = key,
+                            Value = serialized
+                        },
+                        cancellationToken);
         }
     }
 }

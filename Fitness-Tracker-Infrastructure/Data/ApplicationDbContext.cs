@@ -18,13 +18,13 @@ namespace Fitness_Tracker_Infrastructure.Data
         public DbSet<WorkoutEntity> Workouts { get; set; } = null!;
         public DbSet<UserInformatonEntity> UserInformation { get; set; } = null!;
 
-        public DbSet<OutboxMessageEntity> OutboxMessages { get; set; } = null!;
+        public DbSet<OutboxMessage> OutboxMessages { get; set; } = null!;
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);
 
-            modelBuilder.Entity<OutboxMessageEntity>(entity =>
+            modelBuilder.Entity<OutboxMessage>(entity =>
             {
                 entity.HasKey(e => e.Id);
                 entity.Property(e => e.OccurredAt).IsRequired();

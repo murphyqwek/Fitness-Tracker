@@ -1,6 +1,6 @@
-﻿namespace Fitness_Tracker_Infrastructure.Model
+﻿namespace Fitness_Tracker_Domain.Entity
 {
-    public class OutboxMessageEntity
+    public class OutboxMessage
     {
         public Guid Id { get; set; }
 

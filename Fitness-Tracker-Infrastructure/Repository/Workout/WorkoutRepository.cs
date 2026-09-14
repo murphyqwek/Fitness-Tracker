@@ -2,9 +2,12 @@
 using AutoMapper.QueryableExtensions;
 using Fitness_Tracker_Application.DTO.Workout;
 using Fitness_Tracker_Application.Repository.Exercises;
+using Fitness_Tracker_Application.Repository.Outbox;
 using Fitness_Tracker_Application.Repository.Workout;
+using Fitness_Tracker_Domain.Entity;
 using Fitness_Tracker_Infrastructure.Data;
 using Fitness_Tracker_Infrastructure.Model;
+using Fitness_Tracker_Shared;
 using FluentResults;
 using Microsoft.EntityFrameworkCore;
 using StackExchange.Redis;
@@ -17,7 +20,7 @@ namespace Fitness_Tracker_Infrastructure.Repository.Workout
         private readonly ApplicationDbContext _context;
         private readonly IDatabase _cache;
         private readonly IMapper _mapper;
-        private readonly IExerciseRepository _exerciseRepo;
+        private readonly IOutboxMessageRepository _outboxRepo;
 
         private static readonly JsonSerializerOptions _jsonOptions = new()
         {
@@ -27,17 +30,49 @@ namespace Fitness_Tracker_Infrastructure.Repository.Workout
         private readonly TimeSpan _feedCacheTtl = TimeSpan.FromDays(7);
         private readonly TimeSpan _detailCacheTtl = TimeSpan.FromHours(24);
 
-        public WorkoutRepository(ApplicationDbContext context, IConnectionMultiplexer connectionMultiplexer, IMapper mapper, IExerciseRepository exerciseRepo)
+        public WorkoutRepository(ApplicationDbContext context, IConnectionMultiplexer connectionMultiplexer, IMapper mapper, IOutboxMessageRepository outboxRepo)
         {
             _context = context;
             _cache = connectionMultiplexer.GetDatabase();
             _mapper = mapper;
-            _exerciseRepo = exerciseRepo;
+            _outboxRepo = outboxRepo;
         }
 
         private static string GetWorkoutDetailKey(Guid userId, Guid workoutId) => $"workout:{userId}:{workoutId}";
         private static string GetWorkoutReducedKey(Guid workoutId) => $"workout:reduced:{workoutId}";
         private static string GetTimelineKey(Guid userId) => $"user:{userId}:timeline";
+
+        private OutboxMessage GenerateOutboxMessageWhenCreate(WorkoutEntity workoutEntity, Guid userId) {
+
+            var exercises = workoutEntity.WorkoutSets.GroupBy(set => set.ExerciseId)
+                                                            .Select(group => new ExerciseEntry(
+                                                                group.Key,
+                                                                group.OrderBy(set => set.Order)
+                                                                    .Select(set => new SetEntry(
+                                                                        set.Weight,
+                                                                        set.Repetitions))
+                                                                    .ToList()))
+                                                            .ToList();
+
+            var workoutCompletedEventMessage = new WorkoutCompletedV1Event(
+                Guid.NewGuid(),
+                workoutEntity.Id,
+                userId,
+                workoutEntity.CreatedAt,
+                exercises
+            );
+
+            var outboxMessage = new OutboxMessage()
+            {
+                Id = workoutCompletedEventMessage.EventId,
+                Type = nameof(WorkoutCompletedV1Event),
+                Payload = JsonSerializer.Serialize(workoutCompletedEventMessage, _jsonOptions),
+                OccurredAt = DateTimeOffset.UtcNow
+            };
+
+
+            return outboxMessage;
+        }
 
         public async Task<Result<Guid>> CreateOrUpdateWorkoutAsync(Guid userId, CreateWorkoutDTO createWorkoutDTO, CancellationToken cancellationToken)
         {
@@ -60,6 +95,8 @@ namespace Fitness_Tracker_Infrastructure.Repository.Workout
                 else
                 {
                     await _context.Workouts.AddAsync(workoutEntity, cancellationToken);
+                    var outboxMessage = GenerateOutboxMessageWhenCreate(workoutEntity, userId);
+                    _outboxRepo.AddMessage(outboxMessage);
                 }
 
                 await _context.SaveChangesAsync(cancellationToken);
