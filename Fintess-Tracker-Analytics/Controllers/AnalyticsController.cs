@@ -5,7 +5,7 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace Fintess_Tracker_Analytics.Controllers
 {
-    [Route("api/analytics/me")]
+    [Route("api/v1/analytics")]
     [ApiController]
     public class AnalyticsController : ControllerBase
     {
