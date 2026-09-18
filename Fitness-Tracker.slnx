@@ -1,4 +1,7 @@
 <Solution>
+  <Folder Name="/Analytics/" Id="40c1352a-daaa-2742-3ef6-f93edb0619da">
+    <Project Path="Fintess-Tracker-Analytics/Fintess-Tracker-Analytics.csproj" Id="e0de3fde-c57e-467f-a784-98219bfada4a" />
+  </Folder>
   <Folder Name="/Application/">
     <Project Path="Fitness-Tracker-Application/Fitness-Tracker-Application.csproj" />
     <Project Path="Fitness-Tracker-Domain/Fitness-Tracker-Domain.csproj" />
@@ -8,4 +11,5 @@
   <Folder Name="/Tests/">
     <Project Path="Fitness-Tracker-Tests/Fitness-Tracker-Tests.csproj" />
   </Folder>
+  <Project Path="Fitness-Tracker-Shared/Fitness-Tracker-Shared.csproj" Id="a444edd3-b41f-4185-b1a7-2ef02807af87" />
 </Solution>

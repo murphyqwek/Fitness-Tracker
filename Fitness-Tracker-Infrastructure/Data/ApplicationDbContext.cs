@@ -18,9 +18,22 @@ namespace Fitness_Tracker_Infrastructure.Data
         public DbSet<WorkoutEntity> Workouts { get; set; } = null!;
         public DbSet<UserInformatonEntity> UserInformation { get; set; } = null!;
 
+        public DbSet<OutboxMessage> OutboxMessages { get; set; } = null!;
+
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);
+
+            modelBuilder.Entity<OutboxMessage>(entity =>
+            {
+                entity.HasKey(e => e.Id);
+                entity.Property(e => e.OccurredAt).IsRequired();
+                entity.Property(e => e.Type).IsRequired();
+                entity.Property(e => e.Payload).IsRequired();
+                entity.Property(e => e.Topic).IsRequired();
+                entity.Property(e => e.Key).IsRequired();
+                entity.HasIndex(e => e.ProcessedAt);
+            });
 
             modelBuilder.Entity<ExerciseMuscleEntity>()
                 .HasKey(em => new { em.MuscleId, em.ExerciseId });

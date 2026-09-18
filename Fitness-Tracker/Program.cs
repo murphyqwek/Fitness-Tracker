@@ -1,22 +1,30 @@
+using Confluent.Kafka;
 using Fitness_Tracker_Application.Features.Exercise;
 using Fitness_Tracker_Application.Features.Users.JWT;
 using Fitness_Tracker_Application.Features.Users.Registration;
 using Fitness_Tracker_Application.Repository.Exercises;
+using Fitness_Tracker_Application.Repository.Outbox;
 using Fitness_Tracker_Application.Repository.Refresh;
 using Fitness_Tracker_Application.Repository.User;
 using Fitness_Tracker_Application.Repository.Workout;
+using Fitness_Tracker_Application.Service.Kafka;
 using Fitness_Tracker_Application.Validation;
+using Fitness_Tracker_Infrastructure.BackgroundServices;
 using Fitness_Tracker_Infrastructure.Data;
 using Fitness_Tracker_Infrastructure.Repository.Exercises;
+using Fitness_Tracker_Infrastructure.Repository.JWT;
+using Fitness_Tracker_Infrastructure.Repository.Outbox;
 using Fitness_Tracker_Infrastructure.Repository.Refresh;
 using Fitness_Tracker_Infrastructure.Repository.User;
 using Fitness_Tracker_Infrastructure.Repository.Workout;
 using FluentValidation;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Storage.ValueConversion.Internal;
 using Microsoft.IdentityModel.Tokens;
 using StackExchange.Redis;
-using System.Text;
+using System.Security.Cryptography;
+
 namespace Fitness_Tracker_Api
 {
     public class Program
@@ -29,6 +37,8 @@ namespace Fitness_Tracker_Api
             builder.Services.AddEndpointsApiExplorer();
             builder.Services.AddSwaggerGen();
 
+            builder.Services.AddHostedService<OutboxBackgroundService>();
+
             var conn = builder.Configuration.GetConnectionString("DefaultConnection");
             builder.Services.AddDbContext<ApplicationDbContext>(options => options.UseNpgsql(conn));
 
@@ -39,7 +49,6 @@ namespace Fitness_Tracker_Api
 
             builder.Services.AddValidatorsFromAssembly(typeof(RegisterUserCommand).Assembly);
 
-
             builder.Services.AddMediatR(cfg => 
                 {
                     cfg.RegisterServicesFromAssembly(typeof(RegisterUserCommand).Assembly);
@@ -47,48 +56,102 @@ namespace Fitness_Tracker_Api
                 }
             );
 
-            builder.Services.AddScoped<Fitness_Tracker_Application.Repository.User.IUserRepository, UserRepository>();
+            builder.Services.AddSingleton<IProducer<string, string>>(sp =>
+            {
+                var configuration = sp.GetRequiredService<IConfiguration>();
+
+                var config = new ProducerConfig
+                {
+                    BootstrapServers = configuration["Kafka:BootstrapServers"],
+                    Acks = Acks.All,
+                    EnableIdempotence = true,
+                };
+
+                return new ProducerBuilder<string, string>(config).Build();
+            });
+
+            builder.Services.AddSingleton<IKafkaProducer, KafkaProducer>();
+
+            builder.Services.AddScoped<IUserRepository, UserRepository>();
+
+            builder.Services.AddScoped<IOutboxMessageRepository, OutboxMessageRepository>();
 
             builder.Services.Configure<JwtConfigDTO>(builder.Configuration.GetSection("Jwt"));
-            builder.Services.AddScoped<GenerateJwtToken>();
+            builder.Services.AddSingleton<IJwtSigningCredentialsProvider, JwtSigningCredentialsProvider>();
+            builder.Services.AddSingleton<GenerateJwtToken>();
 
             builder.Services.AddExceptionHandler<ValidationExceptionHandler>();
             builder.Services.AddProblemDetails();
 
-            var jwtKey = builder.Configuration["Jwt:Key"];
+            builder.Services.AddAuthentication(options =>
+            {
+                options.DefaultAuthenticateScheme =
+                    JwtBearerDefaults.AuthenticationScheme;
 
-            if (string.IsNullOrEmpty(jwtKey))
+                options.DefaultChallengeScheme =
+                    JwtBearerDefaults.AuthenticationScheme;
+            })
+            .AddJwtBearer(options =>
             {
-                jwtKey = "temporary_secret_key_for_migrations_only_32_chars_long";
-            }
+                var publicKeyPem =
+                    builder.Configuration["Jwt:PublicKeyPem"];
 
-            builder.Services.AddAuthentication(configureOptions =>
-            {
-                configureOptions.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
-                configureOptions.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
-            }).AddJwtBearer(options =>
-            {
-                options.TokenValidationParameters = new TokenValidationParameters
+                if (string.IsNullOrWhiteSpace(publicKeyPem))
                 {
-                    ValidateIssuer = true,
-                    ValidateIssuerSigningKey = true,
-                    ValidateAudience = true,
-                    ValidateLifetime = true,
+                    var publicKeyPath =
+                        builder.Configuration["Jwt:PublicKeyPath"];
 
-                    ValidIssuer = builder.Configuration["Jwt:Issuer"],
-                    ValidAlgorithms = new[] { SecurityAlgorithms.HmacSha256 },
-                    ValidAudience = builder.Configuration["Jwt:Audience"],
-                    IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(builder.Configuration["Jwt:Key"]!))
-                };
+                    if (string.IsNullOrWhiteSpace(publicKeyPath))
+                    {
+                        throw new InvalidOperationException(
+                            "Neither Jwt:PublicKeyPem nor Jwt:PublicKeyPath is configured.");
+                    }
+
+                    publicKeyPem =
+                        File.ReadAllText(publicKeyPath);
+                }
+
+                var publicRsa = RSA.Create();
+
+                publicRsa.ImportFromPem(publicKeyPem);
+
+                var validationKey =
+                    new RsaSecurityKey(publicRsa);
+
+                options.TokenValidationParameters =
+                    new TokenValidationParameters
+                    {
+                        ValidateIssuer = true,
+                        ValidateIssuerSigningKey = true,
+                        ValidateAudience = true,
+                        ValidateLifetime = true,
+
+                        ValidIssuer =
+                            builder.Configuration["Jwt:Issuer"],
+
+                        ValidAudience =
+                            builder.Configuration["Jwt:Audience"],
+
+                        ValidAlgorithms =
+                        [
+                            SecurityAlgorithms.RsaSha256
+                        ],
+
+                        IssuerSigningKey = validationKey
+                    };
+
 
                 options.Events = new JwtBearerEvents
                 {
                     OnMessageReceived = context =>
                     {
-                        if (context.Request.Cookies.ContainsKey("accessToken"))
+                        if (context.Request.Cookies.TryGetValue(
+                                "accessToken",
+                                out var token))
                         {
-                            context.Token = context.Request.Cookies["accessToken"];
+                            context.Token = token;
                         }
+
                         return Task.CompletedTask;
                     }
                 };
@@ -126,11 +189,10 @@ namespace Fitness_Tracker_Api
 
             app.UseExceptionHandler();
 
-            app.UseSwagger();
-            app.UseSwaggerUI();
-
             if (app.Environment.IsDevelopment())
             {
+                app.UseSwagger();
+                app.UseSwaggerUI();
                 using var scope = app.Services.CreateScope();
                 var context = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
                 context.Database.Migrate();
