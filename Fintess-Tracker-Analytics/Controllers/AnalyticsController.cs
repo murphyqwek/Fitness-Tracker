@@ -31,8 +31,7 @@ namespace Fintess_Tracker_Analytics.Controllers
 
         [Authorize]
         [HttpGet("weekly-record")]
-        public async Task<IActionResult> GetWeeklyRecord(
-    CancellationToken cancellationToken)
+        public async Task<IActionResult> GetWeeklyRecord(CancellationToken cancellationToken)
         {
             var userId = User.GetUserId();
 
@@ -47,11 +46,7 @@ namespace Fintess_Tracker_Analytics.Controllers
                 weekStart,
                 cancellationToken);
 
-            return result.IsSuccess
-                ? Ok(result.Value)
-                : StatusCode(
-                    StatusCodes.Status500InternalServerError,
-                    result.Errors);
+            return result.IsSuccess ? Ok(result.Value) : StatusCode(StatusCodes.Status500InternalServerError, result.Errors);
         }
     }
 }

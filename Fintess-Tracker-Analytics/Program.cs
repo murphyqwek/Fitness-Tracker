@@ -93,6 +93,21 @@ namespace Fintess_Tracker_Analytics
 
                         IssuerSigningKey = validationKey
                     };
+
+                options.Events = new JwtBearerEvents
+                {
+                    OnMessageReceived = context =>
+                    {
+                        if (context.Request.Cookies.TryGetValue(
+                                "accessToken",
+                                out var token))
+                        {
+                            context.Token = token;
+                        }
+
+                        return Task.CompletedTask;
+                    }
+                };
             });
 
             builder.Services.AddAuthorization();
