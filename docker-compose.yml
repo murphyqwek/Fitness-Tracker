@@ -40,6 +40,7 @@ services:
       - ConnectionStrings__DefaultConnection=Host=db;Port=5432;Database=${DB_NAME};Username=${DB_USER_APP};Password=${DB_PASSWORD_APP};Maximum Pool Size=${DB_MAX_POOL_SIZE};Minimum Pool Size=1;Timeout=15;
       - ConnectionStrings__Redis=redis-stack:6379,password=${REDIS_PASSWORD}
       - Kafka__BootstrapServers=kafka:29092
+      - Kafka__GroupId=${Kafka_Analytics_GroupId}
       - Jwt__PublicKeyPath=${JWT_PUBLIC_KEY_CONTAINER_PATH}
     depends_on:
         - db
