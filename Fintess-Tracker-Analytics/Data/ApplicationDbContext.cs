@@ -12,6 +12,9 @@ namespace Fintess_Tracker_Analytics.Data
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);
+
+            modelBuilder.HasDefaultSchema("analytics");
+
             modelBuilder.Entity<WorkoutAnalyticsEntity>()
                 .HasKey(w => w.WorkoutId);
 
