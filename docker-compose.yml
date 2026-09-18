@@ -18,6 +18,8 @@ services:
       - ConnectionStrings__DefaultConnection=Host=db;Port=5432;Database=${DB_NAME};Username=${DB_USER_APP};Password=${DB_PASSWORD_APP};Maximum Pool Size=${DB_MAX_POOL_SIZE};Minimum Pool Size=1;Timeout=15;
       - ConnectionStrings__Redis=redis-stack:6379,password=${REDIS_PASSWORD}
       - Kafka__BootstrapServers=kafka:29092
+      - Jwt__PublicKeyPath=${JWT_PUBLIC_KEY_CONTAINER_PATH}
+      - Jwt__PrivateKeyPath=${JWT_PRIVATE_KEY_CONTAINER_PATH}
     depends_on:
       - db
       - redis-stack
@@ -26,6 +28,9 @@ services:
       - "8080:8080"
     networks:
       - app-network
+    volumes:
+      - ${JWT_PUBLIC_KEY_HOST_PATH}:${JWT_PUBLIC_KEY_CONTAINER_PATH}:ro
+      - ${JWT_PRIVATE_KEY_HOST_PATH}:${JWT_PRIVATE_KEY_CONTAINER_PATH}:ro
       
   analytcs:
     image: ${ANALYTICS_IMAGE_NAME}
@@ -35,6 +40,7 @@ services:
       - ConnectionStrings__DefaultConnection=Host=db;Port=5432;Database=${ANALYTICS_DB_NAME};Username=${DB_USER_APP};Password=${DB_PASSWORD_APP};Maximum Pool Size=${DB_MAX_POOL_SIZE};Minimum Pool Size=1;Timeout=15;
       - ConnectionStrings__Redis=redis-stack:6379,password=${REDIS_PASSWORD}
       - Kafka__BootstrapServers=kafka:29092
+      - Jwt__PublicKeyPath=${JWT_PUBLIC_KEY_CONTAINER_PATH}
     depends_on:
         - db
         - redis-stack
@@ -44,6 +50,8 @@ services:
         
     ports:
         - "4545:4545"
+    volumes:
+      - ${JWT_PUBLIC_KEY_HOST_PATH}:${JWT_PUBLIC_KEY_CONTAINER_PATH}:ro
   
   db:
     image: postgres:18-alpine3.23
