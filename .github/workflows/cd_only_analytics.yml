@@ -1,0 +1,45 @@
+name: Analytics CD only
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup dotnet
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+
+      - name: Restore
+        run: dotnet restore
+
+      - name: Login to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKER_LOGIN }}
+          password: ${{ secrets.DOCKER_TOKEN }}
+
+      - name: Build and Push Analytics
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: ./Fintess-Tracker-Analytics/Dockerfile
+          push: true
+          tags: ${{ secrets.DOCKER_LOGIN }}/myprojects:analytics-latest
+
+      - name: Update Analytics
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.SERVER_HOST }}
+          username: ${{ secrets.SERVER_USER }}
+          password: ${{ secrets.SERVER_PASSWORD }}
+          script: |
+            cd ${{ secrets.PATH_TO_DOCKER_COMPOSE }}
+            docker compose pull analytcs
+            docker compose up -d analytcs
