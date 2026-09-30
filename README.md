@@ -3,12 +3,16 @@
 ![ASP.NET Core](https://img.shields.io/badge/ASP.NET_Core-8.0-512BD4?style=flat&logo=dotnet&logoColor=white)
 ![PostgreSQL](https://img.shields.io/badge/PostgreSQL-18-316192?style=flat&logo=postgresql&logoColor=white)
 ![Redis](https://img.shields.io/badge/Redis_Stack-DC382D?style=flat&logo=redis&logoColor=white)
+![Apache Kafka](https://img.shields.io/badge/Apache_Kafka-231F20?style=flat&logo=apachekafka&logoColor=white)
 ![Docker](https://img.shields.io/badge/Docker-2496ED?style=flat&logo=docker&logoColor=white)
 ![Angular](https://img.shields.io/badge/Frontend-Angular-DD0031?style=flat&logo=angular&logoColor=white)
 
-**Fitness-Tracker** - серверная часть веб-приложения для записи, хранения и анализа ваших тренировок
+**Fitness-Tracker** — веб-приложение для записи, хранения и анализа тренировок.
 
-**Репозиторий фронтенда:** [Fitness-Tracker Frontend](https://github.com/murphyqwek/fintess-tracker-client) 
+Основной API отвечает за работу с пользователями, упражнениями и тренировками.  
+События о завершённых тренировках передаются через **Apache Kafka** в отдельный сервис аналитики, который рассчитывает тренировочный объём и недельные рекорды.
+
+**Репозиторий фронтенда:** [Fitness-Tracker Frontend](https://github.com/murphyqwek/fintess-tracker-client)
 
 **Сайт:** [Fitracker](https://fitracker.online)
 
@@ -29,37 +33,47 @@
 ## Основные возможности
 
 - **Каталог упражнений:** быстрый поиск упражнений по названию и целевым мышечным группам
-- **Управление тренировками:** создание, сохранение и просмотр истории тренировочных сессий (подходы, повторения, рабочие веса)
-- **Базовая аналитика:** расчет тренировочных объемов и отслеживание регулярности занятий
-- **Высокая производительность:** кэширование данных с помощью **Redis Stack Server**
-- **Безопасность:** авторизация и аутентификация пользователей на базе JWT токенов.
+- **Управление тренировками:** создание, сохранение и просмотр истории тренировочных сессий
+- **Аналитика:** расчёт тренировочного объёма за месяц и недельного рекорда на основе e1RM
+- **Асинхронная обработка событий:** передача событий о завершённых тренировках через **Apache Kafka**
+- **Надёжная публикация событий:** сохранение сообщений через **Transactional Outbox** перед отправкой в Kafka
+- **Кэширование:** использование **Redis Stack Server**
+- **Безопасность:** JWT-аутентификация с RSA-подписью и Refresh-токенами
+- **Контейнеризация:** запуск приложения и инфраструктуры через Docker Compose
 
 ---
-
 ## Стек технологий
 
 - **Backend:** ASP.NET Core, Entity Framework Core
 - **База данных:** PostgreSQL
 - **Кэширование:** Redis Stack Server
+- **Message Broker:** Apache Kafka
+- **Асинхронная обработка:** Kafka Producer / Consumer, Transactional Outbox
+- **Аутентификация:** JWT, RSA
 - **Контейнеризация:** Docker, Docker Compose
-- **Frontend клиент:** Angular, Tailwind CSS
+- **Reverse Proxy:** Nginx
+- **CI/CD:** GitHub Actions
+- **Frontend:** Angular, TypeScript, Tailwind CSS
 
 ---
 
 ## Быстрый старт (Docker Compose)
 
 ### 1. Клонирование репозитория
+
 ```bash
 git clone https://github.com/murphyqwek/fitness-tracker.git
 cd fitness-tracker
 ```
 
 ### 2. Настройка переменных окружения (`.env`)
+
 Создайте файл `.env` в корневой директории проекта рядом с `docker-compose.yml`:
 
 ```env
-# Имя собираемого/используемого Docker-образа бэкенда
+# Docker images
 IMAGE_NAME=fitness-tracker-api:latest
+ANALYTICS_IMAGE_NAME=fitness-tracker-analytics:latest
 
 # PostgreSQL
 DB_NAME=fitness_tracker_db
@@ -71,35 +85,97 @@ DB_MAX_POOL_SIZE=4
 # Redis
 REDIS_PASSWORD=your_redis_password
 
-# JWT Token
-JWT_KEY=your_super_secret_jwt_key_with_at_least_32_characters
+# JWT
+JWT_PUBLIC_KEY_HOST_PATH=/path/to/secrets/jwt_public.pem
+JWT_PRIVATE_KEY_HOST_PATH=/path/to/secrets/jwt_private.pem
 ```
 
-### 3. Сборка Docker-образа приложения
-Так как `docker-compose` ожидает готовый локальный образ, соберите его с помощью `Dockerfile`:
+Kafka запускается как отдельный контейнер и доступна сервисам внутри Docker-сети по адресу:
+
+```text
+kafka:29092
+```
+
+Для подключения с хоста используется:
+
+```text
+localhost:9092
+```
+
+### 3. Сборка Docker-образов
+
+Основной API:
 
 ```bash
 docker build -t fitness-tracker-api:latest .
 ```
-*(Убедитесь, что название тега совпадает со значением `IMAGE_NAME` в вашем файле `.env`)*
 
-### 4. Запуск сервисов
-Поднимите всю инфраструктуру (API, PostgreSQL, Redis Stack) одной командой:
+Сервис аналитики:
 
 ```bash
-docker-compose up -d
+docker build \
+  -f Fintess-Tracker-Analytics/Dockerfile \
+  -t fitness-tracker-analytics:latest \
+  .
 ```
 
-### 5. Доступ к сервисам
-После успешного старта будут доступны:
+### 4. Запуск сервисов
+
+```bash
+docker compose up -d
+```
+
+Docker Compose поднимет:
+
+- Fitness Tracker API
+- Analytics Service
+- PostgreSQL
+- Redis Stack
+- Apache Kafka
+
+### 5. Проверка Kafka
+
+Посмотреть список топиков:
+
+```bash
+docker exec kafka \
+  /opt/kafka/bin/kafka-topics.sh \
+  --bootstrap-server localhost:29092 \
+  --list
+```
+
+Основной топик приложения:
+
+```text
+workout.completed
+```
+
+Если автоматическое создание топиков отключено, его можно создать вручную:
+
+```bash
+docker exec kafka \
+  /opt/kafka/bin/kafka-topics.sh \
+  --bootstrap-server localhost:29092 \
+  --create \
+  --topic workout.completed \
+  --partitions 1 \
+  --replication-factor 1
+```
+
+### 6. Доступ к сервисам
+
+После запуска будут доступны:
+
 - 🌐 **Backend API:** `http://localhost:8080`
-- 📄 **Swagger UI:** `http://localhost:8080/swagger` *(если включен в Production)*
+- 📊 **Analytics API:** `http://localhost:4545`
 - 🐘 **PostgreSQL:** `localhost:${DB_OUT_PORT}`
 - 🔴 **Redis Stack:** `localhost:6379`
+- 📨 **Apache Kafka:** `localhost:9092`
 
 Остановка контейнеров:
+
 ```bash
-docker-compose down
+docker compose down
 ```
 
 ---
