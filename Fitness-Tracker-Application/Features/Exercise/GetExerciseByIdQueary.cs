@@ -17,6 +17,7 @@ namespace Fitness_Tracker_Application.Features.Exercise
 
         public async Task<Result<ExerciseSearchDTO>> Handle(ExerciseSearchByIdCommand request, CancellationToken cancellationToken)
         {
+            await _exerciseRepository.FillCacheIfEmpty(cancellationToken);
             return await _exerciseRepository.GetExerciseByIdAsync(request.Id, cancellationToken);
         }
     }

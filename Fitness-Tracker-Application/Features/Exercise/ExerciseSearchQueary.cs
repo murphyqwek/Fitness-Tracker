@@ -22,6 +22,8 @@ namespace Fitness_Tracker_Application.Features.Exercise
 
         public async Task<PaginationResponse<ExerciseSearchReducedDTO>> Handle(ExerciseSearchCommand request, CancellationToken cancellationToken)
         {
+            await _exerciseRepository.FillCacheIfEmpty(cancellationToken);
+
             var result = await _exerciseRepository.GetExerciseAsync(request.Name, request.MusclesId, request.Page, request.Size, cancellationToken);
 
             return result;

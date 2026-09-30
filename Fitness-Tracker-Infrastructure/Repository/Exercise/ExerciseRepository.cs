@@ -42,6 +42,8 @@ namespace Fitness_Tracker_Infrastructure.Repository.Exercises
         private static bool _isIndexInitialized = false;
         private static readonly object _lock = new();
 
+        private const string CACHE_READY = "exercise:cache:ready";
+
         public ExerciseRepository(ApplicationDbContext context, IConnectionMultiplexer connection, IMapper mapper, IMemoryCache memoryCache)
         {
             _context = context;
@@ -61,6 +63,18 @@ namespace Fitness_Tracker_Infrastructure.Repository.Exercises
                     }
                 }
             }
+        }
+
+        public async Task FillCacheIfEmpty(CancellationToken cancellationToken) 
+        {
+            if(await _cache.KeyExistsAsync(CACHE_READY)) 
+            {
+                return;
+            }
+
+            await FillCacheFromDb(cancellationToken);
+
+            await _cache.StringSetAsync(CACHE_READY, "1");
         }
 
         private void CreateIndexIfNotExists()
