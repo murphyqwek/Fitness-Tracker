@@ -1,0 +1,6 @@
+# Optional: receive logs from Alloy on the application server via WireGuard.
+# Compose adds this binding to the localhost binding in compose.yaml.
+services:
+  loki:
+    ports:
+      - "10.50.0.2:3100:3100"

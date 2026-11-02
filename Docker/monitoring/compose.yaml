@@ -1,0 +1,65 @@
+name: fitness-monitoring
+
+x-container-logging: &container-logging
+  driver: local
+  options:
+    max-size: "10m"
+    max-file: "3"
+
+services:
+  loki:
+    image: grafana/loki:3.7.9
+    command: ["-config.file=/etc/loki/loki.yaml", "-target=all"]
+    restart: unless-stopped
+    stop_grace_period: 45s
+    ports:
+      - "127.0.0.1:3100:3100"
+    volumes:
+      - type: bind
+        source: ./loki/loki.yaml
+        target: /etc/loki/loki.yaml
+        read_only: true
+        bind:
+          create_host_path: false
+      - loki_data:/loki
+    networks:
+      - monitoring
+    logging: *container-logging
+
+  grafana:
+    image: grafana/grafana:13.3.0
+    restart: unless-stopped
+    depends_on:
+      - loki
+    environment:
+      GF_SECURITY_ADMIN_USER: ${GRAFANA_ADMIN_USER}
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD}
+    ports:
+      - "127.0.0.1:3000:3000"
+    volumes:
+      - type: bind
+        source: ./grafana/grafana.ini
+        target: /etc/grafana/grafana.ini
+        read_only: true
+        bind:
+          create_host_path: false
+      - type: bind
+        source: ./grafana/provisioning/datasources/loki.yaml
+        target: /etc/grafana/provisioning/datasources/loki.yaml
+        read_only: true
+        bind:
+          create_host_path: false
+      - grafana_data:/var/lib/grafana
+    networks:
+      - monitoring
+    logging: *container-logging
+
+networks:
+  monitoring:
+    driver: bridge
+    driver_opts:
+      com.docker.network.bridge.host_binding_ipv4: "127.0.0.1"
+
+volumes:
+  loki_data:
+  grafana_data:
