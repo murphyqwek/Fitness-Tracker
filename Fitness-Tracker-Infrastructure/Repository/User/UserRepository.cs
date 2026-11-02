@@ -5,6 +5,7 @@ using Fitness_Tracker_Infrastructure.Data;
 using Fitness_Tracker_Infrastructure.Model;
 using FluentResults;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 using Npgsql;
 using StackExchange.Redis;
 
@@ -15,12 +16,14 @@ namespace Fitness_Tracker_Infrastructure.Repository.User
         private readonly ApplicationDbContext _dbContext;
         private readonly IMapper _mapper;
         private readonly IDatabase _cache;
+        private readonly ILogger<UserRepository> _logger;
 
-        public UserRepository(ApplicationDbContext dbContext, IMapper mapper, IConnectionMultiplexer connectionMultiplexer)
+        public UserRepository(ApplicationDbContext dbContext, IMapper mapper, IConnectionMultiplexer connectionMultiplexer, ILogger<UserRepository> logger)
         {
             _dbContext = dbContext;
             _mapper = mapper;
             _cache = connectionMultiplexer.GetDatabase();
+            _logger = logger;
         }
 
         public async Task<Result> AddNewUserAsync(Fitness_Tracker_Domain.Entity.User user, CancellationToken cancellationToken)
@@ -43,8 +46,13 @@ namespace Fitness_Tracker_Infrastructure.Repository.User
             {
                 return Result.Fail($"User's login {user.Login} is already taken");
             }
-            catch (Exception)
+            catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
             {
+                throw;
+            }
+            catch (Exception exception)
+            {
+                _logger.LogError(exception, "Failed to persist new user {UserId}", user.Id);
                 return Result.Fail("Unexpectd error accuired during creation of new User");
             }
 

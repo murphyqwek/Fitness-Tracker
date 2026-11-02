@@ -7,6 +7,7 @@ using Fitness_Tracker_Infrastructure.Data;
 using FluentResults;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Memory;
+using Microsoft.Extensions.Logging;
 using NRedisStack;
 using NRedisStack.RedisStackCommands;
 using NRedisStack.Search;
@@ -26,6 +27,7 @@ namespace Fitness_Tracker_Infrastructure.Repository.Exercises
         private readonly IDatabase _cache;
         private readonly ISearchCommandsAsync _searchCommands;
         private readonly IMemoryCache _memoryCache;
+        private readonly ILogger<ExerciseRepository> _logger;
         private static readonly JsonSerializerOptions _jsonSerializationOptions = new JsonSerializerOptions()
         { 
             PropertyNameCaseInsensitive = true,
@@ -44,13 +46,14 @@ namespace Fitness_Tracker_Infrastructure.Repository.Exercises
 
         private const string CACHE_READY = "exercise:cache:ready";
 
-        public ExerciseRepository(ApplicationDbContext context, IConnectionMultiplexer connection, IMapper mapper, IMemoryCache memoryCache)
+        public ExerciseRepository(ApplicationDbContext context, IConnectionMultiplexer connection, IMapper mapper, IMemoryCache memoryCache, ILogger<ExerciseRepository> logger)
         {
             _context = context;
             _cache = connection.GetDatabase();
             _searchCommands = _cache.FT();
             _mapper = mapper;
             _memoryCache = memoryCache;
+            _logger = logger;
 
             if (!_isIndexInitialized)
             {
@@ -202,8 +205,15 @@ namespace Fitness_Tracker_Infrastructure.Repository.Exercises
                 FillFindedExercises(searchResult, findedExercises);
                 total = (int)searchResult.TotalResults;
             }
-            catch (Exception)
+            catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
             {
+                throw;
+            }
+            catch (Exception exception)
+            {
+                _logger.LogError(exception,
+                    "Exercise search failed for index {IndexName}, page {Page}, size {PageSize}",
+                    INDEX_NAME, page, size);
                 findedExercises.Clear();
             }
 

@@ -9,9 +9,12 @@ namespace Fintess_Tracker_Analytics.Repository
     public class AnalyticRepository : IAnalyticRepository
     {
         private readonly ApplicationDbContext _context;
-        public AnalyticRepository(ApplicationDbContext context) 
+        private readonly ILogger<AnalyticRepository> _logger;
+
+        public AnalyticRepository(ApplicationDbContext context, ILogger<AnalyticRepository> logger)
         {
             _context = context;
+            _logger = logger;
         }
 
         public async Task<Result<MonthlyVolumeResponse>> GetMonthlyVolumeAsync(Guid userId, int year, int month, CancellationToken cancellationToken)
@@ -50,6 +53,7 @@ namespace Fintess_Tracker_Analytics.Repository
 
             if (alreadyExists)
             {
+                _logger.LogDebug("Analytics already exist for workout {WorkoutId}; skipping duplicate", completedWorkout.WorkoutId);
                 return Result.Ok();
             }
 

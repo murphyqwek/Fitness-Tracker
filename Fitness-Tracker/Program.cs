@@ -22,7 +22,10 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion.Internal;
 using Microsoft.IdentityModel.Tokens;
+using Serilog;
+using Serilog.Formatting.Compact;
 using StackExchange.Redis;
+using System.Diagnostics;
 using System.Security.Cryptography;
 
 namespace Fitness_Tracker_Api
@@ -169,6 +172,14 @@ namespace Fitness_Tracker_Api
             builder.Services.AddScoped<IWorkoutIdempotencyKeyRepository, RedisWorkoutIdempotencyRepository>();
             builder.Services.AddScoped<IWorkoutRepository, WorkoutRepository>();
 
+            builder.Services.AddSerilog((services, configuration) => configuration
+                .ReadFrom.Configuration(builder.Configuration)
+                .ReadFrom.Services(services)
+                .Enrich.FromLogContext()
+                .Enrich.WithProperty("Service", "fitness-api")
+                .WriteTo.Console(new RenderedCompactJsonFormatter()),
+                preserveStaticLogger: true);
+
             builder.Services.AddAuthorization();
 
             if (builder.Environment.IsDevelopment())
@@ -187,6 +198,15 @@ namespace Fitness_Tracker_Api
 
             var app = builder.Build();
 
+            app.UseSerilogRequestLogging(options =>
+            {
+                options.EnrichDiagnosticContext = (diagnostics, context) =>
+                {
+                    diagnostics.Set("RequestId", context.TraceIdentifier);
+                    diagnostics.Set("TraceId", Activity.Current?.TraceId.ToString() ?? context.TraceIdentifier);
+                };
+            });
+
             app.UseExceptionHandler();
 
             if (app.Environment.IsDevelopment())
@@ -202,7 +222,6 @@ namespace Fitness_Tracker_Api
 
             app.UseAuthentication();
             app.UseAuthorization();
-
 
             app.MapControllers();
 

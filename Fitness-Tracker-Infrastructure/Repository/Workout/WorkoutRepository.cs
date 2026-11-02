@@ -10,6 +10,7 @@ using Fitness_Tracker_Infrastructure.Model;
 using Fitness_Tracker_Shared;
 using FluentResults;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 using StackExchange.Redis;
 using System.Text.Json;
 
@@ -21,6 +22,7 @@ namespace Fitness_Tracker_Infrastructure.Repository.Workout
         private readonly IDatabase _cache;
         private readonly IMapper _mapper;
         private readonly IOutboxMessageRepository _outboxRepo;
+        private readonly ILogger<WorkoutRepository> _logger;
 
         private static readonly JsonSerializerOptions _jsonOptions = new()
         {
@@ -30,12 +32,13 @@ namespace Fitness_Tracker_Infrastructure.Repository.Workout
         private readonly TimeSpan _feedCacheTtl = TimeSpan.FromDays(7);
         private readonly TimeSpan _detailCacheTtl = TimeSpan.FromHours(24);
 
-        public WorkoutRepository(ApplicationDbContext context, IConnectionMultiplexer connectionMultiplexer, IMapper mapper, IOutboxMessageRepository outboxRepo)
+        public WorkoutRepository(ApplicationDbContext context, IConnectionMultiplexer connectionMultiplexer, IMapper mapper, IOutboxMessageRepository outboxRepo, ILogger<WorkoutRepository> logger)
         {
             _context = context;
             _cache = connectionMultiplexer.GetDatabase();
             _mapper = mapper;
             _outboxRepo = outboxRepo;
+            _logger = logger;
         }
 
         private static string GetWorkoutDetailKey(Guid userId, Guid workoutId) => $"workout:{userId}:{workoutId}";
@@ -86,6 +89,9 @@ namespace Fitness_Tracker_Infrastructure.Repository.Workout
                 workoutEntity.CreatedAt = DateTimeOffset.UtcNow;
             }
 
+            Guid? eventId = null;
+            var operation = "LookupWorkout";
+
             try
             {
                 var exists = await _context.Workouts.AnyAsync(w => w.Id == workoutEntity.Id && w.UserId == userId, cancellationToken);
@@ -100,10 +106,24 @@ namespace Fitness_Tracker_Infrastructure.Repository.Workout
                     await _context.Workouts.AddAsync(workoutEntity, cancellationToken);
                     var outboxMessage = GenerateOutboxMessageWhenCreate(workoutEntity, userId);
                     _outboxRepo.AddMessage(outboxMessage);
+                    eventId = outboxMessage.Id;
                 }
 
+                operation = "SaveWorkout";
                 await _context.SaveChangesAsync(cancellationToken);
 
+                if (eventId.HasValue)
+                {
+                    _logger.LogInformation(
+                        "Workout {WorkoutId} created and outbox event {EventId} persisted for user {UserId}",
+                        workoutEntity.Id, eventId.Value, userId);
+                }
+                else
+                {
+                    _logger.LogInformation("Workout {WorkoutId} updated for user {UserId}", workoutEntity.Id, userId);
+                }
+
+                operation = "UpdateWorkoutCache";
                 var batch = _cache.CreateBatch();
 
                 string timelineKey = GetTimelineKey(userId);
@@ -117,8 +137,15 @@ namespace Fitness_Tracker_Infrastructure.Repository.Workout
 
                 batch.Execute();
             }
-            catch (Exception)
+            catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
             {
+                throw;
+            }
+            catch (Exception exception)
+            {
+                _logger.LogError(exception,
+                    "Workout operation {Operation} failed for workout {WorkoutId}, user {UserId}, event {EventId}",
+                    operation, workoutEntity.Id, userId, eventId);
                 return Result.Fail("Database error");
             }
 

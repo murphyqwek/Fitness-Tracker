@@ -42,4 +42,8 @@
     <Using Include="Xunit" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Folder Include="Analytics\" />
+  </ItemGroup>
+
 </Project>

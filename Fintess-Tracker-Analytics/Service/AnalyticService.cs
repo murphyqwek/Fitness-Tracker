@@ -14,11 +14,13 @@ public sealed class AnalyticService
 
     private readonly IAnalyticRepository _repository;
     private readonly IDatabase _cache;
+    private readonly ILogger<AnalyticService> _logger;
 
-    public AnalyticService(IAnalyticRepository repository, IConnectionMultiplexer multiplexer)
+    public AnalyticService(IAnalyticRepository repository, IConnectionMultiplexer multiplexer, ILogger<AnalyticService> logger)
     {
         _repository = repository;
         _cache = multiplexer.GetDatabase();
+        _logger = logger;
     }
 
     public async Task<Result> SaveWorkoutAsync(CompletedWorkoutDTO workout, CancellationToken cancellationToken)
@@ -180,6 +182,7 @@ public sealed class AnalyticService
         catch (Exception exception)
             when (exception is RedisException or JsonException)
         {
+            _logger.LogWarning(exception, "Failed to read analytics cache {CacheKey}; falling back to database", key);
             return null;
         }
     }
@@ -204,9 +207,9 @@ public sealed class AnalyticService
         {
             throw;
         }
-        catch (RedisException)
+        catch (RedisException exception)
         {
-            
+            _logger.LogWarning(exception, "Failed to write analytics cache {CacheKey}", key);
         }
     }
 
@@ -223,9 +226,9 @@ public sealed class AnalyticService
         {
             throw;
         }
-        catch (RedisException)
+        catch (RedisException exception)
         {
-            
+            _logger.LogWarning(exception, "Failed to invalidate analytics cache {CacheKey}", key);
         }
     }
 }

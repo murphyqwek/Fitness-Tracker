@@ -3,6 +3,7 @@ using Fitness_Tracker_Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
 
 namespace Fitness_Tracker_Infrastructure.BackgroundServices;
 
@@ -10,11 +11,15 @@ public sealed class OutboxBackgroundService : BackgroundService
 {
     private readonly IServiceScopeFactory _scopeFactory;
     private readonly IKafkaProducer _kafkaProducer;
+    private readonly ILogger<OutboxBackgroundService> _logger;
+    private DateTimeOffset _nextFailureLogAt;
+    private long _suppressedFailures;
 
-    public OutboxBackgroundService(IServiceScopeFactory scopeFactory, IKafkaProducer kafkaProducer)
+    public OutboxBackgroundService(IServiceScopeFactory scopeFactory, IKafkaProducer kafkaProducer, ILogger<OutboxBackgroundService> logger)
     {
         _scopeFactory = scopeFactory;
         _kafkaProducer = kafkaProducer;
+        _logger = logger;
     }
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
@@ -66,9 +71,30 @@ public sealed class OutboxBackgroundService : BackgroundService
                 message.ProcessedAt =
                     DateTimeOffset.UtcNow;
             }
-            catch
+            catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
             {
+                throw;
             }
+            catch (Exception exception)
+            {
+                var now = DateTimeOffset.UtcNow;
+                if (now >= _nextFailureLogAt)
+                {
+                    _logger.LogWarning(exception,
+                        "Failed to publish outbox event {EventId} to {Topic}; pending events will be retried. Suppressed failures since previous warning: {SuppressedFailureCount}",
+                        message.Id, message.Topic, _suppressedFailures);
+                    _nextFailureLogAt = now.AddMinutes(1);
+                    _suppressedFailures = 0;
+                }
+                else
+                {
+                    _suppressedFailures++;
+                }
+
+                continue;
+            }
+
+            _logger.LogDebug("Outbox event {EventId} published to {Topic}", message.Id, message.Topic);
         }
 
         await context.SaveChangesAsync(cancellationToken);

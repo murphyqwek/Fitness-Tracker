@@ -43,7 +43,8 @@ namespace Fitness_Tracker.Tests.Integration
                 _fixture.DbContext,
                 _fixture.RedisMultiplexer,
                 _mapper,
-                outboxRepoMock.Object
+                outboxRepoMock.Object,
+                NullLogger<WorkoutRepository>.Instance
             );
         }
 

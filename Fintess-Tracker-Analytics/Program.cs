@@ -5,7 +5,10 @@ using Fintess_Tracker_Analytics.Service;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
+using Serilog;
+using Serilog.Formatting.Compact;
 using StackExchange.Redis;
+using System.Diagnostics;
 using System.Security.Cryptography;
 
 namespace Fintess_Tracker_Analytics
@@ -19,6 +22,7 @@ namespace Fintess_Tracker_Analytics
             builder.Services.AddEndpointsApiExplorer();
             builder.Services.AddSwaggerGen();
             builder.Services.AddControllers();
+            builder.Services.AddProblemDetails();
 
             builder.Services.AddAutoMapper(
                 cfg => cfg.AddMaps(typeof(Program).Assembly));
@@ -36,6 +40,14 @@ namespace Fintess_Tracker_Analytics
                 ConfigurationOptions options = ConfigurationOptions.Parse(builder.Configuration.GetConnectionString("Redis")!, true);
                 return ConnectionMultiplexer.Connect(options);
             });
+
+            builder.Services.AddSerilog((services, configuration) => configuration
+                .ReadFrom.Configuration(builder.Configuration)
+                .ReadFrom.Services(services)
+                .Enrich.FromLogContext()
+                .Enrich.WithProperty("Service", "fitness-analytics")
+                .WriteTo.Console(new RenderedCompactJsonFormatter()),
+                preserveStaticLogger: true);
 
             builder.Services.AddAuthentication(options =>
             {
@@ -127,6 +139,17 @@ namespace Fintess_Tracker_Analytics
             }
 
             var app = builder.Build();
+
+            app.UseSerilogRequestLogging(options =>
+            {
+                options.EnrichDiagnosticContext = (diagnostics, context) =>
+                {
+                    diagnostics.Set("RequestId", context.TraceIdentifier);
+                    diagnostics.Set("TraceId", Activity.Current?.TraceId.ToString() ?? context.TraceIdentifier);
+                };
+            });
+
+            app.UseExceptionHandler();
 
             if (app.Environment.IsDevelopment())
             {
