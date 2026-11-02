@@ -1,5 +1,11 @@
 version: '3.8'
 
+x-container-logging: &container-logging
+  driver: local
+  options:
+    max-size: "10m"
+    max-file: "3"
+
 networks:
   app-network:
     driver: bridge
@@ -13,6 +19,7 @@ services:
   app:
     image: ${IMAGE_NAME}
     container_name: app-container
+    logging: *container-logging
     environment:
       - ASPNETCORE_ENVIRONMENT=Production
       - ConnectionStrings__DefaultConnection=Host=db;Port=5432;Database=${DB_NAME};Username=${DB_USER_APP};Password=${DB_PASSWORD_APP};Maximum Pool Size=${DB_MAX_POOL_SIZE};Minimum Pool Size=1;Timeout=15;
@@ -35,6 +42,7 @@ services:
   analytcs:
     image: ${ANALYTICS_IMAGE_NAME}
     container_name: analytcs-container
+    logging: *container-logging
     environment:
       - ASPNETCORE_ENVIRONMENT=Production 
       - ConnectionStrings__DefaultConnection=Host=db;Port=5432;Database=${DB_NAME};Username=${DB_USER_APP};Password=${DB_PASSWORD_APP};Maximum Pool Size=${DB_MAX_POOL_SIZE};Minimum Pool Size=1;Timeout=15;
@@ -57,6 +65,7 @@ services:
   db:
     image: postgres:18-alpine3.23
     container_name: db-container
+    logging: *container-logging
     restart: always
     environment:
       - POSTGRES_USER=${DB_USER_APP}
@@ -73,6 +82,7 @@ services:
   redis-stack:
     image: redis/redis-stack-server:latest
     container_name: redis-stack-container
+    logging: *container-logging
     restart: always
     command: redis-stack-server --requirepass ${REDIS_PASSWORD} --appendonly yes
     ports:
@@ -85,6 +95,7 @@ services:
   kafka:
     image: apache/kafka:4.3.1
     container_name: kafka
+    logging: *container-logging
     ports:
       - "9092:9092"
 
