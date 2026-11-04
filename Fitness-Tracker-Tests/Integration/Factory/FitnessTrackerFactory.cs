@@ -40,6 +40,7 @@ public sealed class FitnessTrackerFactory
                 new Dictionary<string, string?>
                 {
                     ["Kafka:BootstrapServers"] = _fixture.KafkaContainer.GetBootstrapAddress(),
+                    ["Metrics:Port"] = "0",
 
                     ["ConnectionStrings:Redis"] = _fixture.RedisContainer.GetConnectionString(),
 

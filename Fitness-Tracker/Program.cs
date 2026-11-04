@@ -8,9 +8,11 @@ using Fitness_Tracker_Application.Repository.Refresh;
 using Fitness_Tracker_Application.Repository.User;
 using Fitness_Tracker_Application.Repository.Workout;
 using Fitness_Tracker_Application.Service.Kafka;
+using Fitness_Tracker_Application.Service.Metrics;
 using Fitness_Tracker_Application.Validation;
 using Fitness_Tracker_Infrastructure.BackgroundServices;
 using Fitness_Tracker_Infrastructure.Data;
+using Fitness_Tracker_Infrastructure.Metrics;
 using Fitness_Tracker_Infrastructure.Repository.Exercises;
 using Fitness_Tracker_Infrastructure.Repository.JWT;
 using Fitness_Tracker_Infrastructure.Repository.Outbox;
@@ -22,6 +24,7 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion.Internal;
 using Microsoft.IdentityModel.Tokens;
+using Prometheus;
 using Serilog;
 using Serilog.Formatting.Compact;
 using StackExchange.Redis;
@@ -41,6 +44,7 @@ namespace Fitness_Tracker_Api
             builder.Services.AddSwaggerGen();
 
             builder.Services.AddHostedService<OutboxBackgroundService>();
+            builder.Services.AddSingleton<IFitnessMetrics, PrometheusFitnessMetrics>();
 
             var conn = builder.Configuration.GetConnectionString("DefaultConnection");
             builder.Services.AddDbContext<ApplicationDbContext>(options => options.UseNpgsql(conn));
@@ -182,6 +186,11 @@ namespace Fitness_Tracker_Api
 
             builder.Services.AddAuthorization();
 
+            builder.Services.AddMetricServer(options =>
+            {
+                options.Port = builder.Configuration.GetValue<ushort>("Metrics:Port", 9091);
+            });
+
             if (builder.Environment.IsDevelopment())
             {
                 builder.Services.AddCors(options =>
@@ -197,6 +206,7 @@ namespace Fitness_Tracker_Api
             }
 
             var app = builder.Build();
+            _ = app.Services.GetRequiredService<IFitnessMetrics>();
 
             app.UseSerilogRequestLogging(options =>
             {
@@ -207,6 +217,8 @@ namespace Fitness_Tracker_Api
                 };
             });
 
+            app.UseRouting();
+            app.UseHttpMetrics();
             app.UseExceptionHandler();
 
             if (app.Environment.IsDevelopment())

@@ -2,6 +2,7 @@
 using Fitness_Tracker_Application.Features.Exercise;
 using Fitness_Tracker_Application.Repository.Exercises;
 using Fitness_Tracker_Application.Service.Pagination;
+using Fitness_Tracker_Application.Service.Metrics;
 using FluentAssertions;
 using FluentResults;
 using Moq;
@@ -12,10 +13,13 @@ namespace Fitness_Tracker_Tests.Application.Features.Exercise
     public class ExerciseHandlersTests
     {
         private readonly Mock<IExerciseRepository> _exerciseRepoMock;
+        private readonly Mock<IFitnessMetrics> _metrics = new();
 
         public ExerciseHandlersTests()
         {
             _exerciseRepoMock = new Mock<IExerciseRepository>();
+            _metrics.Setup(m => m.MeasureExerciseRetrieval(It.IsAny<ExerciseRetrievalOperation>()))
+                .Returns(Mock.Of<IDisposable>());
         }
 
         [Fact]
@@ -56,7 +60,7 @@ namespace Fitness_Tracker_Tests.Application.Features.Exercise
                 .Setup(r => r.GetExerciseByIdAsync(10, It.IsAny<CancellationToken>()))
                 .ReturnsAsync(Result.Ok(exerciseDto));
 
-            var handler = new GetExerciseByIdQueary(_exerciseRepoMock.Object);
+            var handler = new GetExerciseByIdQueary(_exerciseRepoMock.Object, _metrics.Object);
 
             var result = await handler.Handle(new ExerciseSearchByIdCommand(10), CancellationToken.None);
 
@@ -81,7 +85,7 @@ namespace Fitness_Tracker_Tests.Application.Features.Exercise
                 .Setup(r => r.GetExerciseAsync("отжим", It.IsAny<IList<int>>(), 1, 10, It.IsAny<CancellationToken>()))
                 .ReturnsAsync(expectedResponse);
 
-            var handler = new ExerciseSearchQueary(_exerciseRepoMock.Object);
+            var handler = new ExerciseSearchQueary(_exerciseRepoMock.Object, _metrics.Object);
             var command = new ExerciseSearchCommand("отжим", new List<int> { 1 })
             {
                 Page = 1,
@@ -92,6 +96,70 @@ namespace Fitness_Tracker_Tests.Application.Features.Exercise
 
             result.Should().BeEquivalentTo(expectedResponse);
             _exerciseRepoMock.Verify(r => r.GetExerciseAsync("отжим", command.MusclesId, 1, 10, It.IsAny<CancellationToken>()), Times.Once);
+        }
+
+        [Theory]
+        [InlineData(ExerciseRetrievalOperation.Search)]
+        [InlineData(ExerciseRetrievalOperation.ById)]
+        public async Task RetrievalMeasurement_ShouldCoverCachePreparationAndLookup(ExerciseRetrievalOperation operation)
+        {
+            bool measuring = false;
+            bool lookupCompleted = false;
+            var measurement = new Mock<IDisposable>();
+            measurement.Setup(m => m.Dispose()).Callback(() =>
+            {
+                lookupCompleted.Should().BeTrue();
+                measuring = false;
+            });
+            _metrics.Setup(m => m.MeasureExerciseRetrieval(operation))
+                .Callback(() => measuring = true)
+                .Returns(measurement.Object);
+            _exerciseRepoMock.Setup(r => r.FillCacheIfEmpty(It.IsAny<CancellationToken>()))
+                .Callback(() => measuring.Should().BeTrue())
+                .Returns(Task.CompletedTask);
+            _exerciseRepoMock.Setup(r => r.GetExerciseAsync(null, null, 1, 10, It.IsAny<CancellationToken>()))
+                .Callback(() => { measuring.Should().BeTrue(); lookupCompleted = true; })
+                .ReturnsAsync(new PaginationResponse<ExerciseSearchReducedDTO>(1, 10, 0, []));
+            _exerciseRepoMock.Setup(r => r.GetExerciseByIdAsync(10, It.IsAny<CancellationToken>()))
+                .Callback(() => { measuring.Should().BeTrue(); lookupCompleted = true; })
+                .ReturnsAsync(Result.Fail<ExerciseSearchDTO>("Not found"));
+
+            await RetrieveExercise(operation);
+
+            measuring.Should().BeFalse();
+            _metrics.Verify(m => m.MeasureExerciseRetrieval(operation), Times.Once);
+            measurement.Verify(m => m.Dispose(), Times.Once);
+        }
+
+        [Theory]
+        [InlineData(ExerciseRetrievalOperation.Search)]
+        [InlineData(ExerciseRetrievalOperation.ById)]
+        public async Task RetrievalMeasurement_WhenCachePreparationFails_ShouldFinishAndPreserveException(ExerciseRetrievalOperation operation)
+        {
+            var failure = new InvalidOperationException("Redis is unavailable");
+            var measurement = new Mock<IDisposable>();
+            _metrics.Setup(m => m.MeasureExerciseRetrieval(operation)).Returns(measurement.Object);
+            _exerciseRepoMock.Setup(r => r.FillCacheIfEmpty(It.IsAny<CancellationToken>()))
+                .ThrowsAsync(failure);
+
+            var exception = await Assert.ThrowsAsync<InvalidOperationException>(() => RetrieveExercise(operation));
+
+            Assert.Same(failure, exception);
+            measurement.Verify(m => m.Dispose(), Times.Once);
+        }
+
+        private async Task RetrieveExercise(ExerciseRetrievalOperation operation)
+        {
+            if (operation == ExerciseRetrievalOperation.Search)
+            {
+                var handler = new ExerciseSearchQueary(_exerciseRepoMock.Object, _metrics.Object);
+                await handler.Handle(new ExerciseSearchCommand(null, null) { Page = 1, Size = 10 }, CancellationToken.None);
+            }
+            else
+            {
+                var handler = new GetExerciseByIdQueary(_exerciseRepoMock.Object, _metrics.Object);
+                await handler.Handle(new ExerciseSearchByIdCommand(10), CancellationToken.None);
+            }
         }
     }
 }

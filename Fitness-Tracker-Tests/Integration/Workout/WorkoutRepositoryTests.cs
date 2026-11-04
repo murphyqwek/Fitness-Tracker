@@ -2,6 +2,7 @@
 using Fitness_Tracker_Application.DTO.Workout;
 using Fitness_Tracker_Application.Repository.Exercises;
 using Fitness_Tracker_Application.Repository.Outbox;
+using Fitness_Tracker_Application.Service.Metrics;
 using Fitness_Tracker_Infrastructure.Model;
 using Fitness_Tracker_Infrastructure.Repository.Workout;
 using FluentAssertions;
@@ -16,6 +17,7 @@ namespace Fitness_Tracker.Tests.Integration
         private readonly TestDatabaseFixture _fixture;
         private readonly WorkoutRepository _repository;
         private readonly IMapper _mapper;
+        private readonly Mock<IFitnessMetrics> _metrics = new();
 
         public WorkoutRepositoryTests(TestDatabaseFixture fixture)
         {
@@ -44,7 +46,8 @@ namespace Fitness_Tracker.Tests.Integration
                 _fixture.RedisMultiplexer,
                 _mapper,
                 outboxRepoMock.Object,
-                NullLogger<WorkoutRepository>.Instance
+                NullLogger<WorkoutRepository>.Instance,
+                _metrics.Object
             );
         }
 
@@ -78,6 +81,7 @@ namespace Fitness_Tracker.Tests.Integration
                 .FirstOrDefaultAsync(w => w.Id == workoutId && w.UserId == userId);
             dbWorkout.Should().NotBeNull();
             dbWorkout!.Name.Should().Be("Upper Body");
+            _metrics.Verify(m => m.RecordWorkoutCreated(), Times.Once);
 
             var db = _fixture.RedisMultiplexer.GetDatabase();
             string timelineKey = $"user:{userId}:timeline";

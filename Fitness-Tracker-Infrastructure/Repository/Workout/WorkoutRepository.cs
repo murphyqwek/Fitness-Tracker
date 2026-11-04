@@ -3,6 +3,7 @@ using AutoMapper.QueryableExtensions;
 using Fitness_Tracker_Application.DTO.Workout;
 using Fitness_Tracker_Application.Repository.Exercises;
 using Fitness_Tracker_Application.Repository.Outbox;
+using Fitness_Tracker_Application.Service.Metrics;
 using Fitness_Tracker_Application.Repository.Workout;
 using Fitness_Tracker_Domain.Entity;
 using Fitness_Tracker_Infrastructure.Data;
@@ -23,6 +24,7 @@ namespace Fitness_Tracker_Infrastructure.Repository.Workout
         private readonly IMapper _mapper;
         private readonly IOutboxMessageRepository _outboxRepo;
         private readonly ILogger<WorkoutRepository> _logger;
+        private readonly IFitnessMetrics _metrics;
 
         private static readonly JsonSerializerOptions _jsonOptions = new()
         {
@@ -32,13 +34,14 @@ namespace Fitness_Tracker_Infrastructure.Repository.Workout
         private readonly TimeSpan _feedCacheTtl = TimeSpan.FromDays(7);
         private readonly TimeSpan _detailCacheTtl = TimeSpan.FromHours(24);
 
-        public WorkoutRepository(ApplicationDbContext context, IConnectionMultiplexer connectionMultiplexer, IMapper mapper, IOutboxMessageRepository outboxRepo, ILogger<WorkoutRepository> logger)
+        public WorkoutRepository(ApplicationDbContext context, IConnectionMultiplexer connectionMultiplexer, IMapper mapper, IOutboxMessageRepository outboxRepo, ILogger<WorkoutRepository> logger, IFitnessMetrics metrics)
         {
             _context = context;
             _cache = connectionMultiplexer.GetDatabase();
             _mapper = mapper;
             _outboxRepo = outboxRepo;
             _logger = logger;
+            _metrics = metrics;
         }
 
         private static string GetWorkoutDetailKey(Guid userId, Guid workoutId) => $"workout:{userId}:{workoutId}";
@@ -114,6 +117,7 @@ namespace Fitness_Tracker_Infrastructure.Repository.Workout
 
                 if (eventId.HasValue)
                 {
+                    _metrics.RecordWorkoutCreated();
                     _logger.LogInformation(
                         "Workout {WorkoutId} created and outbox event {EventId} persisted for user {UserId}",
                         workoutEntity.Id, eventId.Value, userId);

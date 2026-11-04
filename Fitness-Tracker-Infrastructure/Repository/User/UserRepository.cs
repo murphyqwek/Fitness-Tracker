@@ -1,6 +1,7 @@
 ﻿using AutoMapper;
 using Fitness_Tracker_Application.DTO.User;
 using Fitness_Tracker_Application.Repository.User;
+using Fitness_Tracker_Application.Service.Metrics;
 using Fitness_Tracker_Infrastructure.Data;
 using Fitness_Tracker_Infrastructure.Model;
 using FluentResults;
@@ -17,13 +18,15 @@ namespace Fitness_Tracker_Infrastructure.Repository.User
         private readonly IMapper _mapper;
         private readonly IDatabase _cache;
         private readonly ILogger<UserRepository> _logger;
+        private readonly IFitnessMetrics _metrics;
 
-        public UserRepository(ApplicationDbContext dbContext, IMapper mapper, IConnectionMultiplexer connectionMultiplexer, ILogger<UserRepository> logger)
+        public UserRepository(ApplicationDbContext dbContext, IMapper mapper, IConnectionMultiplexer connectionMultiplexer, ILogger<UserRepository> logger, IFitnessMetrics metrics)
         {
             _dbContext = dbContext;
             _mapper = mapper;
             _cache = connectionMultiplexer.GetDatabase();
             _logger = logger;
+            _metrics = metrics;
         }
 
         public async Task<Result> AddNewUserAsync(Fitness_Tracker_Domain.Entity.User user, CancellationToken cancellationToken)
@@ -56,6 +59,9 @@ namespace Fitness_Tracker_Infrastructure.Repository.User
                 return Result.Fail("Unexpectd error accuired during creation of new User");
             }
 
+
+            // Persistence has succeeded even if the subsequent cache update fails.
+            _metrics.RecordUserRegistered();
 
             string userKey = $"user:{user.Id}";
             var hashEntries = new HashEntry[]

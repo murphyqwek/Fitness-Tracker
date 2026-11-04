@@ -1,4 +1,5 @@
 ﻿using Fitness_Tracker_Application.Service.Kafka;
+using Fitness_Tracker_Application.Service.Metrics;
 using Fitness_Tracker_Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
@@ -12,14 +13,16 @@ public sealed class OutboxBackgroundService : BackgroundService
     private readonly IServiceScopeFactory _scopeFactory;
     private readonly IKafkaProducer _kafkaProducer;
     private readonly ILogger<OutboxBackgroundService> _logger;
+    private readonly IFitnessMetrics _metrics;
     private DateTimeOffset _nextFailureLogAt;
     private long _suppressedFailures;
 
-    public OutboxBackgroundService(IServiceScopeFactory scopeFactory, IKafkaProducer kafkaProducer, ILogger<OutboxBackgroundService> logger)
+    public OutboxBackgroundService(IServiceScopeFactory scopeFactory, IKafkaProducer kafkaProducer, ILogger<OutboxBackgroundService> logger, IFitnessMetrics metrics)
     {
         _scopeFactory = scopeFactory;
         _kafkaProducer = kafkaProducer;
         _logger = logger;
+        _metrics = metrics;
     }
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
@@ -42,6 +45,11 @@ public sealed class OutboxBackgroundService : BackgroundService
 
         var context = scope.ServiceProvider
             .GetRequiredService<ApplicationDbContext>();
+
+        // Count the entire queue, not just the batch limited to 100 messages below.
+        var pendingMessages = await context.OutboxMessages
+            .LongCountAsync(message => message.ProcessedAt == null, cancellationToken);
+        _metrics.SetPendingOutboxMessages(pendingMessages);
 
         await using var transaction =
             await context.Database.BeginTransactionAsync(

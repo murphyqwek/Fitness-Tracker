@@ -3,6 +3,7 @@ using Fitness_Tracker_Application.DTO.User;
 using FluentResults;
 using MediatR;
 using AutoMapper;
+using Fitness_Tracker_Application.Service.Metrics;
 
 namespace Fitness_Tracker_Application.Features.Users.Authorization
 {
@@ -12,10 +13,12 @@ namespace Fitness_Tracker_Application.Features.Users.Authorization
     {
         private readonly IUserRepository _userRepository;
         private readonly IMapper _mapper;
-        public AuthorizateUserCommandHandler(IUserRepository userRepository, IMapper mapper)
+        private readonly IFitnessMetrics _metrics;
+        public AuthorizateUserCommandHandler(IUserRepository userRepository, IMapper mapper, IFitnessMetrics metrics)
         {
             _userRepository = userRepository;
             _mapper = mapper;
+            _metrics = metrics;
         }
 
         public async Task<Result<UserDTO>> Handle(AuthorizateUserCommand request, CancellationToken cancellationToken)
@@ -24,6 +27,7 @@ namespace Fitness_Tracker_Application.Features.Users.Authorization
 
             if (result.IsFailed)
             {
+                _metrics.RecordLoginAttempt(false);
                 return Result.Fail<UserDTO>("User not found");
             }
 
@@ -32,10 +36,12 @@ namespace Fitness_Tracker_Application.Features.Users.Authorization
             if (isVerified)
             {
                 var userDTO = _mapper.Map<UserDTO>(result.Value);
+                _metrics.RecordLoginAttempt(true);
                 return Result.Ok(userDTO);
             }
             else
             {
+                _metrics.RecordLoginAttempt(false);
                 return Result.Fail<UserDTO>("Invalid password");
             }
         }

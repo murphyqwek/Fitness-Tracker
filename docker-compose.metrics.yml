@@ -1,0 +1,5 @@
+# Apply alongside docker-compose.yml on the application server after WireGuard starts.
+services:
+  app:
+    ports:
+      - "${APP_WIREGUARD_IP:-10.50.0.1}:9091:9091"

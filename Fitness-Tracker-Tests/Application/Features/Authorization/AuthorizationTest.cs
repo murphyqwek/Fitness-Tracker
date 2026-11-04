@@ -2,6 +2,7 @@
 using Fitness_Tracker_Application.Features.Users.Authorization;
 using Fitness_Tracker_Application.Mapping;
 using Fitness_Tracker_Application.Repository.User;
+using Fitness_Tracker_Application.Service.Metrics;
 using Fitness_Tracker_Domain.Entity;
 using FluentResults;
 using Microsoft.Extensions.Logging.Abstractions;
@@ -12,6 +13,7 @@ namespace Fitness_Tracker_Tests.Application.Features.Authorization
     public class AuthorizationTest
     {
         private readonly IMapper _mapper;
+        private readonly Mock<IFitnessMetrics> _metrics = new();
 
         public AuthorizationTest()
         {
@@ -45,12 +47,14 @@ namespace Fitness_Tracker_Tests.Application.Features.Authorization
                 .ReturnsAsync(Result.Ok(user));
 
 
-            var handler = new AuthorizateUserCommandHandler(mockUserRepository.Object, _mapper);
+            var handler = new AuthorizateUserCommandHandler(mockUserRepository.Object, _mapper, _metrics.Object);
             var result = await handler.Handle(command, CancellationToken.None);
 
 
             Assert.True(result.IsSuccess);
             Assert.Equal(user.Id, result.Value.Id);
+            _metrics.Verify(m => m.RecordLoginAttempt(true), Times.Once);
+            _metrics.Verify(m => m.RecordLoginAttempt(false), Times.Never);
         }
 
         [Fact]
@@ -71,11 +75,13 @@ namespace Fitness_Tracker_Tests.Application.Features.Authorization
                 .ReturnsAsync(Result.Ok(user));
 
 
-            var handler = new AuthorizateUserCommandHandler(mockUserRepository.Object, _mapper);
+            var handler = new AuthorizateUserCommandHandler(mockUserRepository.Object, _mapper, _metrics.Object);
             var result = await handler.Handle(command, CancellationToken.None);
 
 
             Assert.False(result.IsSuccess);
+            _metrics.Verify(m => m.RecordLoginAttempt(false), Times.Once);
+            _metrics.Verify(m => m.RecordLoginAttempt(true), Times.Never);
         }
 
         [Fact]
@@ -90,12 +96,14 @@ namespace Fitness_Tracker_Tests.Application.Features.Authorization
                 .ReturnsAsync(Result.Fail<User>("User not found"));
 
 
-            var handler = new AuthorizateUserCommandHandler(mockUserRepository.Object, _mapper);
+            var handler = new AuthorizateUserCommandHandler(mockUserRepository.Object, _mapper, _metrics.Object);
             var result = await handler.Handle(command, CancellationToken.None);
 
 
             Assert.False(result.IsSuccess);
             Assert.Equal("User not found", result.Errors.First().Message);
+            _metrics.Verify(m => m.RecordLoginAttempt(false), Times.Once);
+            _metrics.Verify(m => m.RecordLoginAttempt(true), Times.Never);
         }
     }
 }
