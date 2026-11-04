@@ -41,8 +41,8 @@ namespace Fintess_Tracker_Analytics.Repository
             var estimatedOneRepMax = await _context.Workouts
                 .AsNoTracking()
                 .Where(cw => cw.UserId == userId && cw.CompletedAt >= periodStart && cw.CompletedAt < periodEnd)
-                .MaxAsync(cw => cw.MaxEstimatedOneRepMax);
-            return Result.Ok(new WeeklyRecordResponse(estimatedOneRepMax));
+                .MaxAsync(cw => (decimal?)cw.MaxEstimatedOneRepMax, cancellationToken);
+            return Result.Ok(new WeeklyRecordResponse(estimatedOneRepMax ?? 0m));
         }
 
         public async Task<Result> SaveNewWorkoutAsync(SaveCompleteWorkoutDTO completedWorkout, CancellationToken cancellationToken)

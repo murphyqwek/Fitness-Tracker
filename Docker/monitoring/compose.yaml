@@ -14,6 +14,7 @@ services:
     stop_grace_period: 45s
     ports:
       - "127.0.0.1:3100:3100"
+      - "10.50.0.2:3100:3100"
     volumes:
       - type: bind
         source: ./loki/loki.yaml
@@ -52,6 +53,18 @@ services:
       - type: bind
         source: ./grafana/provisioning/datasources/prometheus.yaml
         target: /etc/grafana/provisioning/datasources/prometheus.yaml
+        read_only: true
+        bind:
+          create_host_path: false
+      - type: bind
+        source: ./grafana/provisioning/dashboards/fitness.yaml
+        target: /etc/grafana/provisioning/dashboards/fitness.yaml
+        read_only: true
+        bind:
+          create_host_path: false
+      - type: bind
+        source: ./grafana/dashboards
+        target: /var/lib/grafana/dashboards
         read_only: true
         bind:
           create_host_path: false

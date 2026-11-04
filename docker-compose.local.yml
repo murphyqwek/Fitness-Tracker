@@ -1,0 +1,7 @@
+# Local development: use together with docker-compose.yml.
+# Replace the server WireGuard binding with localhost (Compose v2.24.4+).
+services:
+  app:
+    ports: !override
+      - "8080:8080"
+      - "127.0.0.1:9091:9091"

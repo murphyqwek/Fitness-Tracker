@@ -1,0 +1,81 @@
+name: fitness-infrastructure
+
+x-container-logging: &container-logging
+  driver: local
+  options:
+    max-size: "10m"
+    max-file: "3"
+
+services:
+  redis-stack:
+    image: redis/redis-stack-server:latest
+    container_name: redis-stack-container
+    restart: unless-stopped
+    stop_grace_period: 30s
+    command:
+      - redis-stack-server
+      - --requirepass
+      - ${REDIS_PASSWORD:?Set REDIS_PASSWORD in .env}
+      - --appendonly
+      - "yes"
+    environment:
+      REDISCLI_AUTH: ${REDIS_PASSWORD:?Set REDIS_PASSWORD in .env}
+    ports:
+      - "${INFRA_WIREGUARD_IP:-10.50.0.2}:6379:6379"
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
+    networks:
+      - infrastructure
+    logging: *container-logging
+
+  kafka:
+    image: apache/kafka:4.3.1
+    container_name: kafka
+    restart: unless-stopped
+    stop_grace_period: 60s
+    environment:
+      KAFKA_HEAP_OPTS: "${KAFKA_HEAP_OPTS:--Xms128m -Xmx512m}"
+      KAFKA_NODE_ID: 1
+      KAFKA_PROCESS_ROLES: broker,controller
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: CONTROLLER:PLAINTEXT,INTERNAL:PLAINTEXT,EXTERNAL:PLAINTEXT
+      KAFKA_LISTENERS: INTERNAL://0.0.0.0:29092,CONTROLLER://0.0.0.0:29093,EXTERNAL://0.0.0.0:9092
+      # Remote clients must receive the WireGuard address in broker metadata.
+      KAFKA_ADVERTISED_LISTENERS: INTERNAL://kafka:29092,EXTERNAL://${INFRA_WIREGUARD_IP:-10.50.0.2}:9092
+      KAFKA_INTER_BROKER_LISTENER_NAME: INTERNAL
+      KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
+      KAFKA_CONTROLLER_QUORUM_VOTERS: 1@kafka:29093
+      KAFKA_LOG_DIRS: /var/lib/kafka/data
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+    ports:
+      - "${INFRA_WIREGUARD_IP:-10.50.0.2}:9092:9092"
+    volumes:
+      - kafka-data:/var/lib/kafka/data
+    healthcheck:
+      # The probe starts its own JVM; keep its heap smaller than the broker's.
+      test:
+        - CMD-SHELL
+        - KAFKA_HEAP_OPTS='-Xms32m -Xmx128m' /opt/kafka/bin/kafka-broker-api-versions.sh --bootstrap-server kafka:29092 > /dev/null 2>&1
+      interval: 30s
+      timeout: 15s
+      retries: 5
+      start_period: 60s
+    networks:
+      - infrastructure
+    logging: *container-logging
+
+networks:
+  infrastructure:
+    driver: bridge
+
+# Fresh, project-scoped volumes on the monitoring server. No migration/import.
+volumes:
+  redis-data:
+  kafka-data:

@@ -1,5 +1,5 @@
-# Optional: receive logs from Alloy on the application server via WireGuard.
-# Compose adds this binding to the localhost binding in compose.yaml.
+# Compatibility override for existing deployment commands.
+# This WireGuard binding is also present in compose.yaml; Compose deduplicates it.
 services:
   loki:
     ports:

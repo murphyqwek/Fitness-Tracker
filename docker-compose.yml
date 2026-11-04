@@ -12,27 +12,25 @@ networks:
 
 volumes:
   postgre_data: 
-  redis-data:
-  kafka-data:
 
 services:
   app:
     image: ${IMAGE_NAME}
     container_name: app-container
+    restart: unless-stopped
     logging: *container-logging
     environment:
       - ASPNETCORE_ENVIRONMENT=Production
       - ConnectionStrings__DefaultConnection=Host=db;Port=5432;Database=${DB_NAME};Username=${DB_USER_APP};Password=${DB_PASSWORD_APP};Maximum Pool Size=${DB_MAX_POOL_SIZE};Minimum Pool Size=1;Timeout=15;
-      - ConnectionStrings__Redis=redis-stack:6379,password=${REDIS_PASSWORD}
-      - Kafka__BootstrapServers=kafka:29092
+      - ConnectionStrings__Redis=${INFRA_WIREGUARD_IP:-10.50.0.2}:6379,password=${REDIS_PASSWORD}
+      - Kafka__BootstrapServers=${INFRA_WIREGUARD_IP:-10.50.0.2}:9092
       - Jwt__PublicKeyPath=${JWT_PUBLIC_KEY_CONTAINER_PATH}
       - Jwt__PrivateKeyPath=${JWT_PRIVATE_KEY_CONTAINER_PATH}
     depends_on:
       - db
-      - redis-stack
-      - kafka
     ports:
       - "8080:8080"
+      - "${APP_WIREGUARD_IP:-10.50.0.1}:9091:9091"
     networks:
       - app-network
     volumes:
@@ -42,18 +40,18 @@ services:
   analytcs:
     image: ${ANALYTICS_IMAGE_NAME}
     container_name: analytcs-container
+    restart: unless-stopped
     logging: *container-logging
     environment:
-      - ASPNETCORE_ENVIRONMENT=Production 
+      - ASPNETCORE_ENVIRONMENT=Production
+      - ASPNETCORE_HTTP_PORTS=4545
       - ConnectionStrings__DefaultConnection=Host=db;Port=5432;Database=${DB_NAME};Username=${DB_USER_APP};Password=${DB_PASSWORD_APP};Maximum Pool Size=${DB_MAX_POOL_SIZE};Minimum Pool Size=1;Timeout=15;
-      - ConnectionStrings__Redis=redis-stack:6379,password=${REDIS_PASSWORD}
-      - Kafka__BootstrapServers=kafka:29092
+      - ConnectionStrings__Redis=${INFRA_WIREGUARD_IP:-10.50.0.2}:6379,password=${REDIS_PASSWORD}
+      - Kafka__BootstrapServers=${INFRA_WIREGUARD_IP:-10.50.0.2}:9092
       - Kafka__GroupId=${Kafka_Analytics_GroupId}
       - Jwt__PublicKeyPath=${JWT_PUBLIC_KEY_CONTAINER_PATH}
     depends_on:
         - db
-        - redis-stack
-        - kafka
     networks:
         - app-network
         
@@ -76,50 +74,6 @@ services:
       - "${DB_OUT_PORT}:5432"
     volumes:
       - postgre_data:/var/lib/postgresql/
-    networks:
-      - app-network
-
-  redis-stack:
-    image: redis/redis-stack-server:latest
-    container_name: redis-stack-container
-    logging: *container-logging
-    restart: always
-    command: redis-stack-server --requirepass ${REDIS_PASSWORD} --appendonly yes
-    ports:
-      - '6379:6379'
-    volumes:
-      - redis-data:/data
-    networks:
-      - app-network 
-      
-  kafka:
-    image: apache/kafka:4.3.1
-    container_name: kafka
-    logging: *container-logging
-    ports:
-      - "9092:9092"
-
-    environment:
-      KAFKA_NODE_ID: 1
-      KAFKA_PROCESS_ROLES: broker,controller
-
-      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: CONTROLLER:PLAINTEXT,INTERNAL:PLAINTEXT,EXTERNAL:PLAINTEXT
-
-      KAFKA_LISTENERS: INTERNAL://0.0.0.0:29092,CONTROLLER://0.0.0.0:29093,EXTERNAL://0.0.0.0:9092
-
-      KAFKA_ADVERTISED_LISTENERS: INTERNAL://kafka:29092,EXTERNAL://localhost:9092
-
-      KAFKA_INTER_BROKER_LISTENER_NAME: INTERNAL
-      KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
-      KAFKA_CONTROLLER_QUORUM_VOTERS: 1@kafka:29093
-
-      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
-      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
-      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
-
-    volumes:
-      - kafka-data:/var/lib/kafka/data
-      
     networks:
       - app-network
 

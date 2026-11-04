@@ -29,7 +29,7 @@ docker compose up -d
 ssh -N -o ExitOnForwardFailure=yes -L 127.0.0.1:3000:127.0.0.1:3000 USER@MONITOR_PUBLIC_IP
 ```
 
-Откройте [Grafana](http://127.0.0.1:3000) и войдите с данными из `.env`. Источники Loki и Prometheus подключены автоматически; Loki остаётся источником по умолчанию. Логи появятся после их отправки, метрики — после подключения эндпоинта приложения.
+Откройте [Grafana](http://127.0.0.1:3000) и войдите с данными из `.env`. Источники Loki и Prometheus подключены автоматически; Loki остаётся источником по умолчанию. Дашборд **Fitness Tracker → Fitness API** также подключается автоматически. Логи появятся после их отправки, метрики — после подключения эндпоинта приложения.
 
 ## Конфиги
 
@@ -41,8 +41,54 @@ ssh -N -o ExitOnForwardFailure=yes -L 127.0.0.1:3000:127.0.0.1:3000 USER@MONITOR
 | `grafana/grafana.ini` | Настройки Grafana |
 | `grafana/provisioning/datasources/loki.yaml` | Подключение Grafana к Loki |
 | `grafana/provisioning/datasources/prometheus.yaml` | Подключение Grafana к Prometheus |
+| `grafana/provisioning/dashboards/fitness.yaml` | Загрузка дашборда в папку Fitness Tracker |
+| `grafana/dashboards/fitness-api.json` | Шесть панелей метрик Fitness API |
 
 Конфиги подключены к контейнерам в режиме чтения. После их изменения выполните `docker compose restart loki prometheus grafana`. После изменения Compose или `.env` — `docker compose up -d`.
+
+## Дашборд Fitness API
+
+В репозитории уже подготовлен [JSON дашборда](grafana/dashboards/fitness-api.json). Панели используют источник с UID `prometheus`, заданный в provisioning источников:
+
+| Панель | Что показывает |
+| --- | --- |
+| Доступность API | `UP` / `DOWN` по результату последнего опроса `/metrics` |
+| Новые тренировки · 1 час | Прирост счётчика за скользящий час |
+| Результаты входа · 1 час | Успешные и неуспешные проверки учётных данных |
+| HTTP-запросы в секунду | Частоту запросов, усреднённую за 5 минут |
+| p95 получения упражнений | Время поиска и получения по ID за окно 5 минут |
+| Очередь Outbox | Изменение числа необработанных сообщений |
+
+### Подключить к существующему стеку
+
+Перенесите на сервер мониторинга обновлённый `compose.yaml` и оба каталога `grafana/dashboards/` и `grafana/provisioning/dashboards/`, сохранив структуру. Выполните из каталога мониторинга:
+
+```bash
+docker compose config --quiet
+docker compose up -d grafana
+docker compose logs --tail=50 grafana
+```
+
+Если Loki опубликован через WireGuard, используйте те же файлы Compose, с которыми запущен стек:
+
+```bash
+docker compose -f compose.yaml -f compose.wireguard.yaml config --quiet
+docker compose -f compose.yaml -f compose.wireguard.yaml up -d grafana
+```
+
+После пересоздания контейнера откройте [Fitness API](http://127.0.0.1:3000/d/fitness-api) через SSH-туннель. Дашборд расположен в папке **Fitness Tracker**, период по умолчанию — 30 минут, обновление — 15 секунд.
+
+Панели загружаются через [файловый provisioning Grafana](https://grafana.com/docs/grafana/latest/administration/provisioning/#dashboards). Изменения JSON подхватываются примерно за 30 секунд; сохранение правок из интерфейса отключено, исходник хранится в Git. Можно сохранить отдельную копию дашборда для экспериментов.
+
+### Импортировать вручную
+
+Чтобы посмотреть дашборд без изменения серверного Compose, в Grafana откройте **Dashboards → Import**, загрузите `grafana/dashboards/fitness-api.json` и подтвердите импорт. В этой Grafana должен существовать источник с UID `prometheus`. Используйте один способ подключения для UID `fitness-api`: при последующем provisioning файловая версия заменит ручную.
+
+### Проверить данные
+
+Сначала выполните в Explore → Prometheus `up{job="fitness-api"}`. Для рабочего опроса должно быть `1`. Затем несколько минут выполняйте поиск, открывайте карточки упражнений, создайте тестовые тренировки и выполните вход с верным и неверным паролем. Подробный сценарий — в [инструкции по скриншотам](../../docs/screenshots.md).
+
+`Нет данных` отличается от `DOWN`: первое означает отсутствие ряда, второе — неуспешный опрос существующей цели. `UP` проверяет доступность метрик, а не работоспособность всех функций API. `rate` и `increase` требуют нескольких опросов; без обращений к упражнениям p95 не определён. `increase` может быть дробным из-за экстраполяции. Ноль в Outbox при исправной доставке — ожидаемый результат; не заменяем отсутствие данных нулём.
 
 ## Проверка
 
