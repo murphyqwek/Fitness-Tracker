@@ -1,0 +1,16 @@
+global:
+  scrape_interval: 15s
+  scrape_timeout: 5s
+
+scrape_configs:
+  - job_name: fitness-api
+    scheme: http
+    metrics_path: /metrics
+
+    static_configs:
+      - targets:
+          # WireGuard address of the application server; change if different.
+          - "10.50.0.1:9091"
+        labels:
+          environment: production
+          service: fitness-api
