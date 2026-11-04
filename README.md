@@ -53,18 +53,10 @@ Fitness Tracker помогает вести историю тренировок,
 
 ## Как устроен проект
 
-```mermaid
-flowchart LR
-    UI[Angular] --> API[ASP.NET Core API]
-    UI --> Analytics[Analytics API]
-    API <--> Redis[(Redis Stack)]
-    API --> DB[(PostgreSQL: приложение и Outbox)]
-    DB --> Worker[Outbox worker]
-    Worker --> Kafka[Kafka: workout.completed]
-    Kafka --> Consumer[Analytics consumer]
-    Consumer --> ADB[(PostgreSQL: схема analytics)]
-    Analytics --> ADB
-```
+<div align="center">
+  <img src="docs/img/architecture.png" alt="Архитектура" width="960">
+  <p><em>Архитектура приложения</em></p>
+</div>
 
 После сохранения новой тренировки Outbox worker отправляет `WorkoutCompletedV1Event` в топик `workout.completed`. Consumer рассчитывает сумму `вес × повторения` и максимальный e1RM по подходам. Для нескольких повторений используется формула `вес × (1 + повторения / 30)`; для одного — сам вес.
 
@@ -215,17 +207,6 @@ npm start -- --ssl
 ```
 
 Cookies авторизации имеют флаги `Secure`, `HttpOnly`, `SameSite=Strict`, поэтому для проверки входа через браузер используйте HTTPS на frontend и проксирование API. В production HTTPS и маршрутизацию к двум API должен обеспечивать reverse proxy.
-
-## Метрики и логи
-
-```mermaid
-flowchart LR
-    API[Fitness API] -->|HTTP и бизнес-метрики :9091| Prometheus
-    Prometheus --> Grafana
-    Apps[API и Analytics: JSON stdout/stderr] --> Alloy
-    Alloy -->|WireGuard| Loki
-    Loki --> Grafana
-```
 
 ### Что измеряется
 
