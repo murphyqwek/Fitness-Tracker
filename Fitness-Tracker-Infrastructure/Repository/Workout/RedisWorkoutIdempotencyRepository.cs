@@ -7,6 +7,7 @@ namespace Fitness_Tracker_Infrastructure.Repository.Workout
     {
         private readonly IDatabase _cache;
         private const int MAX_RETRIES = 3;
+        private static readonly TimeSpan IdempotencyTtl = TimeSpan.FromMinutes(10);
 
         public RedisWorkoutIdempotencyRepository(IConnectionMultiplexer connectionMultiplexer) 
         {
@@ -36,7 +37,7 @@ namespace Fitness_Tracker_Infrastructure.Repository.Workout
 
         private async Task<(IdempotencyStatus Status, Guid? Result)> TryLock(string key) 
         {
-            bool setResult = await _cache.StringSetAsync(key, "RUNNING", TimeSpan.FromHours(5), When.NotExists);
+            bool setResult = await _cache.StringSetAsync(key, "RUNNING", IdempotencyTtl, When.NotExists);
 
             if (setResult)
             {
@@ -61,7 +62,7 @@ namespace Fitness_Tracker_Infrastructure.Repository.Workout
         public async Task UpdateWorkoutIdempotencyStatus(Guid userId, Guid idempotencyKey, Guid workoutId)
         {
             string key = GetKey(userId, idempotencyKey);
-            await _cache.StringSetAsync(key, workoutId.ToString(), TimeSpan.FromHours(5), When.Exists);
+            await _cache.StringSetAsync(key, workoutId.ToString(), IdempotencyTtl, When.Exists);
         }
 
         public async Task DeleteWorkoutIdempotencyStatus(Guid userId, Guid idempotencyKey)

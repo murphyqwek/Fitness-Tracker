@@ -3,7 +3,6 @@ using Fitness_Tracker_Application.Repository.Exercises;
 using Fitness_Tracker_Application.Repository.Workout;
 using FluentResults;
 using MediatR;
-using System.Reflection.Metadata.Ecma335;
 
 namespace Fitness_Tracker_Application.Features.Workout
 {
@@ -40,13 +39,21 @@ namespace Fitness_Tracker_Application.Features.Workout
 
             if (!isAllExists)
             {
+                await _idempotencyKeyRepo.DeleteWorkoutIdempotencyStatus(request.userId, request.idempotencyKey);
                 return Result.Fail("Request contains exercise's ids that does not exist in database");
             }
 
 
             var creationResult = await _repo.CreateOrUpdateWorkoutAsync(request.userId, request.workoutDTO, cancellationToken);
 
-            await _idempotencyKeyRepo.DeleteWorkoutIdempotencyStatus(request.userId, request.idempotencyKey);
+            if (creationResult.IsSuccess)
+            {
+                await _idempotencyKeyRepo.UpdateWorkoutIdempotencyStatus(request.userId, request.idempotencyKey, creationResult.Value);
+            }
+            else
+            {
+                await _idempotencyKeyRepo.DeleteWorkoutIdempotencyStatus(request.userId, request.idempotencyKey);
+            }
 
             return creationResult;
         }
