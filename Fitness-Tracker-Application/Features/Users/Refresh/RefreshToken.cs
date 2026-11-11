@@ -45,7 +45,7 @@ namespace Fitness_Tracker_Application.Features.Users.Refresh
 
             await _mediator.Send(new DeleteRefreshTokenCommand(refreshToken));
 
-            await _mediator.Send(new AddRefreshTokenCommand(newRefreshToken, userResult.Value.Id, TimeSpan.FromDays(7)));
+            await _mediator.Send(new AddRefreshTokenCommand(newRefreshToken, userResult.Value.Id, RefreshTokenPolicy.Lifetime));
             
 
             return Result.Ok(new RefreshTokenResponse(accessToken, newRefreshToken));

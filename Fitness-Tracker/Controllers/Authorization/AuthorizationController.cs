@@ -32,7 +32,7 @@ namespace Fitness_Tracker.Controllers.Authorization
 
             var refreshToken = await _mediator.Send(new GenerateRefreshTokenCommand());
 
-            await _mediator.Send(new AddRefreshTokenCommand(refreshToken, result.Value.Id, TimeSpan.FromHours(24)));
+            await _mediator.Send(new AddRefreshTokenCommand(refreshToken, result.Value.Id, RefreshTokenPolicy.Lifetime));
 
             var accessToken = await _mediator.Send(new GenerateJwtTokenCommand(result.Value));
 

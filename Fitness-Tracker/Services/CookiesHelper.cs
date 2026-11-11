@@ -1,5 +1,7 @@
 ﻿namespace Fitness_Tracker.Services
 {
+    using Fitness_Tracker_Application.Features.Users.Refresh;
+
     public static class CookiesHelper
     {
         public static void SetAccessAndRefreshTokenCookies(HttpResponse response, string access, string refresh)
@@ -25,7 +27,9 @@
                 Secure = true,
                 SameSite = SameSiteMode.Strict,
                 HttpOnly = true,
-                Path = "/api/v1/auth/refresh"
+                Path = "/api/v1/auth/refresh",
+                MaxAge = RefreshTokenPolicy.Lifetime,
+                Expires = DateTimeOffset.UtcNow.Add(RefreshTokenPolicy.Lifetime)
             });
         }
     }
